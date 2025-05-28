@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web 教學白板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="h-full m-0 overflow-hidden">
+    <div id="toolbar" class="absolute top-2 left-1/2 transform -translate-x-1/2 p-2 bg-gray-200 shadow-lg rounded-lg z-10 flex space-x-2 items-center">
+        <!-- 工具按鈕 -->
+        <button id="penTool" title="畫筆" class="p-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400">P</button>
+        <button id="eraserTool" title="橡皮擦" class="p-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">E</button>
+        <button id="textTool" title="文字" class="p-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400">T</button>
+        <button id="notesTool" title="便條紙" class="p-2 bg-orange-500 text-white rounded hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400">N</button>
+        <button id="qrTool" title="QR Code" class="p-2 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400">QR</button>
+        <button id="timerTool" title="計時器" class="p-2 bg-purple-500 text-white rounded hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-400">⏱</button>
+        
+        <!-- 顏色選擇器 -->
+        <input type="color" id="colorPicker" title="選擇顏色" value="#000000" class="w-8 h-8 p-0 border-none rounded cursor-pointer">
+        
+        <!-- 線條粗細 -->
+        <div class="flex items-center space-x-1">
+            <label for="lineWidth" class="text-sm text-gray-700">粗細:</label>
+            <input type="range" id="lineWidth" title="線條粗細" min="1" max="50" value="5" class="cursor-pointer">
+            <span id="lineWidthValue" class="text-sm text-gray-700 w-6 text-right">5</span>
+        </div>
+        
+        <!-- 清空按鈕 -->
+        <button id="clearCanvas" title="清空畫布" class="p-2 bg-red-500 text-white rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400">Clear</button>
+
+        <!-- 分隔線 -->
+        <div class="border-l border-gray-400 h-6 mx-1"></div>
+
+        <!-- 背景選擇 -->
+        <div class="flex items-center space-x-1">
+            <label for="backgroundSelector" class="text-sm text-gray-700">背景:</label>
+            <select id="backgroundSelector" class="p-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                <option value="white">白色</option>
+                <option value="lightgray">淺灰</option>
+                <option value="grid">格線</option>
+                <option value="customColor">自訂顏色</option>
+            </select>
+            <input type="color" id="customBackgroundColorPicker" title="自訂背景顏色" value="#ffffff" class="w-8 h-8 p-0 border-none rounded cursor-pointer ml-1 hidden">
+        </div>
+
+    </div>
+    <canvas id="whiteboard"></canvas>
+    <script src="js/CanvasModule.js"></script>
+    <script src="js/BackgroundModule.js"></script>
+    <script src="js/TextToolModule.js"></script>
+    <script src="js/NotesModule.js"></script>
+    <script src="js/QRCodeModule.js"></script>
+    <script src="js/TimerModule.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 

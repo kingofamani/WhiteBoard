@@ -1,0 +1,5 @@
+/* 基本樣式，確保 canvas 初始時可見 */
+#whiteboard {
+    display: block; /* 移除 canvas 底部多餘的空間 */
+    background-color: #f0f0f0; /* 暫時的背景色，方便觀察 */
+} 
