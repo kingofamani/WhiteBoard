@@ -4,6 +4,7 @@ let textToolModule;
 let notesModule;
 let qrCodeModule;
 let youtubeModule;
+let imageModule;
 let volumeDetectionModule;
 let timerModule;
 
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     qrCodeModule = new QRCodeModule(canvasModule, backgroundModule, app);
     youtubeModule = new YouTubeModule();
+    imageModule = new ImageModule();
     timerModule = new TimerModule(canvasModule, backgroundModule, app);
 
     // 初始化音量偵測模組
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const notesToolBtn = document.getElementById('notesTool'); // 獲取便條紙工具按鈕
     const qrToolBtn = document.getElementById('qrTool'); // 獲取 QR code 工具按鈕
     const youtubeToolBtn = document.getElementById('youtubeTool'); // 獲取 YouTube 工具按鈕
+    const imageToolBtn = document.getElementById('imageTool'); // 獲取圖片工具按鈕
     const timerToolBtn = document.getElementById('timerTool'); // 獲取計時器按鈕
     const colorPicker = document.getElementById('colorPicker');
     const lineWidthSlider = document.getElementById('lineWidth');
@@ -50,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setActiveToolButton(newToolButton) {
         if (activeToolButton) {
-            activeToolButton.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-700', 'ring-gray-700', 'ring-yellow-700', 'ring-orange-700', 'ring-green-700', 'ring-purple-700', 'ring-red-700');
+            activeToolButton.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-700', 'ring-gray-700', 'ring-yellow-700', 'ring-orange-700', 'ring-green-700', 'ring-purple-700', 'ring-red-700', 'ring-indigo-700');
         }
         let ringColorClass = '';
         if (newToolButton === penTool) ringColorClass = 'ring-blue-700';
@@ -59,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (newToolButton === notesToolBtn) ringColorClass = 'ring-orange-700';
         else if (newToolButton === qrToolBtn) ringColorClass = 'ring-green-700';
         else if (newToolButton === youtubeToolBtn) ringColorClass = 'ring-red-700';
+        else if (newToolButton === imageToolBtn) ringColorClass = 'ring-indigo-700';
         else if (newToolButton === timerToolBtn) ringColorClass = 'ring-purple-700';
 
         newToolButton.classList.add('ring-2', 'ring-offset-2', ringColorClass);
@@ -71,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         notesModule.deactivate(); // 停用便條紙工具
         qrCodeModule.deactivate(); // 停用 QR code 工具
         youtubeModule.deactivate(); // 停用 YouTube 工具
+        imageModule.deactivate(); // 停用圖片工具
         canvasModule.setTool('pen');
         setActiveToolButton(penTool);
         canvas.style.cursor = 'crosshair'; // 設定畫筆游標
@@ -81,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         notesModule.deactivate();
         qrCodeModule.deactivate();
         youtubeModule.deactivate();
+        imageModule.deactivate();
         canvasModule.setTool('eraser');
         setActiveToolButton(eraserTool);
         canvas.style.cursor = 'crosshair'; // 橡皮擦也用 crosshair 或自訂圖示
@@ -90,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         notesModule.deactivate(); // 停用便條紙工具
         qrCodeModule.deactivate(); // 停用 QR code 工具
         youtubeModule.deactivate(); // 停用 YouTube 工具
+        imageModule.deactivate(); // 停用圖片工具
         canvasModule.setTool('text'); // 設定 canvasModule 的內部狀態，但不直接影響繪圖事件
         textToolModule.activate();
         setActiveToolButton(textToolBtn);
@@ -100,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         textToolModule.deactivate(); // 停用文字工具
         qrCodeModule.deactivate(); // 停用 QR code 工具
         youtubeModule.deactivate(); // 停用 YouTube 工具
+        imageModule.deactivate(); // 停用圖片工具
         canvasModule.setTool('notes'); // 設定 canvasModule 的內部狀態
         notesModule.activate();
         setActiveToolButton(notesToolBtn);
@@ -110,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         textToolModule.deactivate(); // 停用文字工具
         notesModule.deactivate(); // 停用便條紙工具
         youtubeModule.deactivate(); // 停用 YouTube 工具
+        imageModule.deactivate(); // 停用圖片工具
         canvasModule.setTool('qrcode'); // 設定 canvasModule 的內部狀態
         qrCodeModule.activate();
         setActiveToolButton(qrToolBtn);
@@ -120,10 +129,22 @@ document.addEventListener('DOMContentLoaded', () => {
         textToolModule.deactivate(); // 停用文字工具
         notesModule.deactivate(); // 停用便條紙工具
         qrCodeModule.deactivate(); // 停用 QR code 工具
+        imageModule.deactivate(); // 停用圖片工具
         canvasModule.setTool('youtube'); // 設定 canvasModule 的內部狀態
         youtubeModule.activate();
         setActiveToolButton(youtubeToolBtn);
         // youtubeModule.activate() 內部會設定游標和顯示控制項
+    });
+
+    imageToolBtn.addEventListener('click', () => {
+        textToolModule.deactivate(); // 停用文字工具
+        notesModule.deactivate(); // 停用便條紙工具
+        qrCodeModule.deactivate(); // 停用 QR code 工具
+        youtubeModule.deactivate(); // 停用 YouTube 工具
+        canvasModule.setTool('image'); // 設定 canvasModule 的內部狀態
+        imageModule.activate();
+        setActiveToolButton(imageToolBtn);
+        // imageModule.activate() 內部會顯示圖片選擇器
     });
 
     timerToolBtn.addEventListener('click', () => {
@@ -149,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         notesModule.notes = []; // 清空便條紙陣列
         qrCodeModule.qrCodes = []; // 清空 QR codes 陣列
         youtubeModule.clearAllVideos(); // 清空 YouTube 影片
+        imageModule.clearAllImages(); // 清空圖片
         backgroundModule.drawBackground(); // 然後重繪背景
         // 此時前景是空的，不需要 redrawAllContent
     });

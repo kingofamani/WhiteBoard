@@ -197,4 +197,41 @@
 #youtubeTool.active {
     background-color: #dc2626 !important;
     box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.3);
+}
+
+/* 圖片容器樣式 */
+.image-container {
+    user-select: none;
+    transition: box-shadow 0.2s ease;
+}
+
+.image-container:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.image-container.selected {
+    border-color: #ef4444 !important;
+}
+
+/* 圖片控制按鈕樣式 */
+.image-control-btn:hover {
+    transform: scale(1.1) !important;
+}
+
+.image-container button[title="移動圖片"]:hover {
+    background-color: #4f46e5 !important;
+}
+
+.image-container button[title="刪除圖片"]:hover {
+    background-color: #dc2626 !important;
+}
+
+.image-container .resize-handle:hover {
+    background-color: #059669 !important;
+}
+
+/* 圖片工具按鈕啟動狀態 */
+#imageTool.active {
+    background-color: #5b21b6 !important;
+    box-shadow: 0 0 0 2px rgba(91, 33, 182, 0.3);
 } 
