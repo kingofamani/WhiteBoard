@@ -3,3 +3,198 @@
     display: block; /* 移除 canvas 底部多餘的空間 */
     background-color: #f0f0f0; /* 暫時的背景色，方便觀察 */
 } 
+
+/* 計時器樣式 */
+.timer-display {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: bold;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* 音量偵測樣式 */
+.volume-detection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 音量條樣式 */
+.volume-bar-container {
+    width: 80px;
+    height: 12px;
+    background-color: #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+
+.volume-bar {
+    height: 100%;
+    transition: width 0.1s ease-out;
+    border-radius: 6px;
+}
+
+.volume-bar.low {
+    background-color: #10b981; /* 綠色 */
+}
+
+.volume-bar.medium {
+    background-color: #f59e0b; /* 黃色 */
+}
+
+.volume-bar.high {
+    background-color: #ef4444; /* 紅色 */
+}
+
+/* 閾值滑桿樣式 */
+#volumeThreshold {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+#volumeThreshold::-webkit-slider-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 4px;
+}
+
+#volumeThreshold::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #3b82f6;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+#volumeThreshold::-moz-range-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+}
+
+#volumeThreshold::-moz-range-thumb {
+    background: #3b82f6;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+/* 麥克風按鈕狀態 */
+.mic-active {
+    background-color: #ef4444 !important;
+    color: white;
+}
+
+.mic-inactive {
+    background-color: #6b7280;
+    color: white;
+}
+
+/* 警告鈴鐺動畫 */
+.warning-bell-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+/* Toast 通知樣式 */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #ef4444;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    font-weight: 500;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast.hide {
+    transform: translateX(100%);
+}
+
+/* 音量條閾值指示線 */
+.threshold-indicator {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #ef4444;
+    z-index: 1;
+    transition: left 0.2s ease;
+}
+
+/* YouTube 影片容器樣式 */
+.youtube-video-container {
+    user-select: none;
+    transition: box-shadow 0.2s ease;
+}
+
+.youtube-video-container:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.youtube-video-container.selected {
+    border-color: #ef4444 !important;
+}
+
+/* YouTube 影片控制項樣式 */
+.video-controls {
+    pointer-events: auto;
+}
+
+.video-controls button:hover {
+    background-color: #dc2626 !important;
+    transform: scale(1.1);
+}
+
+/* 圓形控制按鈕樣式 */
+.move-handle:hover {
+    background-color: #2563eb !important;
+    transform: scale(1.1) !important;
+}
+
+.youtube-video-container button[title="刪除影片"]:hover {
+    background-color: #dc2626 !important;
+    transform: scale(1.1) !important;
+}
+
+/* 縮放控制點樣式 */
+.resize-handle {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.resize-handle:hover {
+    transform: scale(1.2);
+    background-color: #059669 !important;
+}
+
+/* YouTube 工具按鈕啟動狀態 */
+#youtubeTool.active {
+    background-color: #dc2626 !important;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.3);
+} 

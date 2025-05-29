@@ -148,14 +148,14 @@ WhiteBoard/
 2. **啟動本地伺服器**:
    ```bash
    # 使用 Python
-   python -m http.server 8000
+   python -m http.server 5000
    
    # 或使用 Node.js
    npx serve .
    ```
 
 3. **開啟瀏覽器**:
-   訪問 `http://localhost:8000`
+   訪問 `http://localhost:5000`
 
 ## 瀏覽器支援
 

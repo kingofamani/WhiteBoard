@@ -1,17 +1,40 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const canvasModule = new CanvasModule('whiteboard');
-    const canvas = canvasModule.getCanvasElement();
-    const backgroundModule = new BackgroundModule(canvasModule); // 初始化 BackgroundModule
-    const textToolModule = new TextToolModule(canvasModule, backgroundModule, this); // Pass backgroundModule
-    const notesModule = new NotesModule(canvasModule, backgroundModule, this); // 初始化 NotesModule
-    const qrCodeModule = new QRCodeModule(canvasModule, backgroundModule, this); // 初始化 QRCodeModule
-    const timerModule = new TimerModule(canvasModule, backgroundModule, this); // 初始化 TimerModule
+let canvasModule;
+let backgroundModule;
+let textToolModule;
+let notesModule;
+let qrCodeModule;
+let youtubeModule;
+let volumeDetectionModule;
+let timerModule;
 
+document.addEventListener('DOMContentLoaded', () => {
+    canvasModule = new CanvasModule('whiteboard');
+    backgroundModule = new BackgroundModule(canvasModule);
+    textToolModule = new TextToolModule(canvasModule, backgroundModule);
+    notesModule = new NotesModule(canvasModule, backgroundModule);
+    
+    // 建立 app 實例以便傳遞給其他模組
+    const app = {
+        canvasModule,
+        backgroundModule,
+        textToolModule,
+        notesModule
+    };
+
+    qrCodeModule = new QRCodeModule(canvasModule, backgroundModule, app);
+    youtubeModule = new YouTubeModule();
+    timerModule = new TimerModule(canvasModule, backgroundModule, app);
+
+    // 初始化音量偵測模組
+    volumeDetectionModule = new VolumeDetectionModule();
+
+    const canvas = canvasModule.getCanvasElement();
     const penTool = document.getElementById('penTool');
     const eraserTool = document.getElementById('eraserTool');
     const textToolBtn = document.getElementById('textTool'); // 獲取文字工具按鈕
     const notesToolBtn = document.getElementById('notesTool'); // 獲取便條紙工具按鈕
     const qrToolBtn = document.getElementById('qrTool'); // 獲取 QR code 工具按鈕
+    const youtubeToolBtn = document.getElementById('youtubeTool'); // 獲取 YouTube 工具按鈕
     const timerToolBtn = document.getElementById('timerTool'); // 獲取計時器按鈕
     const colorPicker = document.getElementById('colorPicker');
     const lineWidthSlider = document.getElementById('lineWidth');
@@ -27,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setActiveToolButton(newToolButton) {
         if (activeToolButton) {
-            activeToolButton.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-700', 'ring-gray-700', 'ring-yellow-700', 'ring-orange-700', 'ring-green-700', 'ring-purple-700');
+            activeToolButton.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-700', 'ring-gray-700', 'ring-yellow-700', 'ring-orange-700', 'ring-green-700', 'ring-purple-700', 'ring-red-700');
         }
         let ringColorClass = '';
         if (newToolButton === penTool) ringColorClass = 'ring-blue-700';
@@ -35,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (newToolButton === textToolBtn) ringColorClass = 'ring-yellow-700';
         else if (newToolButton === notesToolBtn) ringColorClass = 'ring-orange-700';
         else if (newToolButton === qrToolBtn) ringColorClass = 'ring-green-700';
+        else if (newToolButton === youtubeToolBtn) ringColorClass = 'ring-red-700';
         else if (newToolButton === timerToolBtn) ringColorClass = 'ring-purple-700';
 
         newToolButton.classList.add('ring-2', 'ring-offset-2', ringColorClass);
@@ -46,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         textToolModule.deactivate(); // 如果文字工具是 활성화 狀態，則停用它
         notesModule.deactivate(); // 停用便條紙工具
         qrCodeModule.deactivate(); // 停用 QR code 工具
+        youtubeModule.deactivate(); // 停用 YouTube 工具
         canvasModule.setTool('pen');
         setActiveToolButton(penTool);
         canvas.style.cursor = 'crosshair'; // 設定畫筆游標
@@ -55,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         textToolModule.deactivate();
         notesModule.deactivate();
         qrCodeModule.deactivate();
+        youtubeModule.deactivate();
         canvasModule.setTool('eraser');
         setActiveToolButton(eraserTool);
         canvas.style.cursor = 'crosshair'; // 橡皮擦也用 crosshair 或自訂圖示
@@ -63,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     textToolBtn.addEventListener('click', () => {
         notesModule.deactivate(); // 停用便條紙工具
         qrCodeModule.deactivate(); // 停用 QR code 工具
+        youtubeModule.deactivate(); // 停用 YouTube 工具
         canvasModule.setTool('text'); // 設定 canvasModule 的內部狀態，但不直接影響繪圖事件
         textToolModule.activate();
         setActiveToolButton(textToolBtn);
@@ -72,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     notesToolBtn.addEventListener('click', () => {
         textToolModule.deactivate(); // 停用文字工具
         qrCodeModule.deactivate(); // 停用 QR code 工具
+        youtubeModule.deactivate(); // 停用 YouTube 工具
         canvasModule.setTool('notes'); // 設定 canvasModule 的內部狀態
         notesModule.activate();
         setActiveToolButton(notesToolBtn);
@@ -81,10 +109,21 @@ document.addEventListener('DOMContentLoaded', () => {
     qrToolBtn.addEventListener('click', () => {
         textToolModule.deactivate(); // 停用文字工具
         notesModule.deactivate(); // 停用便條紙工具
+        youtubeModule.deactivate(); // 停用 YouTube 工具
         canvasModule.setTool('qrcode'); // 設定 canvasModule 的內部狀態
         qrCodeModule.activate();
         setActiveToolButton(qrToolBtn);
         // qrCodeModule.activate() 內部會顯示 QR code 面板
+    });
+
+    youtubeToolBtn.addEventListener('click', () => {
+        textToolModule.deactivate(); // 停用文字工具
+        notesModule.deactivate(); // 停用便條紙工具
+        qrCodeModule.deactivate(); // 停用 QR code 工具
+        canvasModule.setTool('youtube'); // 設定 canvasModule 的內部狀態
+        youtubeModule.activate();
+        setActiveToolButton(youtubeToolBtn);
+        // youtubeModule.activate() 內部會設定游標和顯示控制項
     });
 
     timerToolBtn.addEventListener('click', () => {
@@ -109,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasModule.clearCanvas(); // 這會清除畫布和 drawingHistory
         notesModule.notes = []; // 清空便條紙陣列
         qrCodeModule.qrCodes = []; // 清空 QR codes 陣列
+        youtubeModule.clearAllVideos(); // 清空 YouTube 影片
         backgroundModule.drawBackground(); // 然後重繪背景
         // 此時前景是空的，不需要 redrawAllContent
     });
