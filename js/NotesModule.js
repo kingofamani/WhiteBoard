@@ -5,45 +5,73 @@ class NotesModule {
         this.app = appInstance;
         this.canvas = this.canvasModule.getCanvasElement();
         this.active = false;
-        this.notes = []; // 儲存所有便條紙
+        this.notes = []; // 儲存所有便條紙DOM元素
         this.nextId = 1; // 便條紙 ID 計數器
         this.selectedNote = null; // 當前選中的便條紙
         this.isDragging = false;
+        this.isResizing = false;
         this.dragOffset = { x: 0, y: 0 };
+        this.resizeHandle = null;
+
+        // 預設設定
+        this.defaultWidth = 120;
+        this.defaultHeight = 80;
+        this.minWidth = 80;
+        this.minHeight = 60;
 
         // 綁定事件處理函數
         this.handleCanvasClick = this.handleCanvasClick.bind(this);
-        this.handleCanvasMouseDown = this.handleCanvasMouseDown.bind(this);
-        this.handleCanvasMouseMove = this.handleCanvasMouseMove.bind(this);
-        this.handleCanvasMouseUp = this.handleCanvasMouseUp.bind(this);
-        this.handleTextareaBlur = this.handleTextareaBlur.bind(this);
+        this.bindEvents();
+    }
+
+    bindEvents() {
+        // 監聽畫布點擊事件
+        document.addEventListener('click', (e) => {
+            if (this.active && (e.target.id === 'whiteboard' || e.target.id === 'testArea')) {
+                this.handleCanvasClick(e);
+            }
+        });
+
+        // 監聽鍵盤事件
+        document.addEventListener('keydown', (e) => {
+            if (this.active && e.key === 'Delete' && this.selectedNote) {
+                this.deleteSelectedNote();
+            }
+        });
+
+        // 監聽滑鼠事件
+        document.addEventListener('mousedown', this.handleMouseDown.bind(this));
+        document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+        document.addEventListener('mouseup', this.handleMouseUp.bind(this));
     }
 
     activate() {
         this.active = true;
         this.canvas.style.cursor = 'crosshair';
-        this.canvas.addEventListener('click', this.handleCanvasClick);
-        this.canvas.addEventListener('mousedown', this.handleCanvasMouseDown);
-        this.canvas.addEventListener('mousemove', this.handleCanvasMouseMove);
-        this.canvas.addEventListener('mouseup', this.handleCanvasMouseUp);
         console.log('Notes tool activated');
+        
+        // 顯示所有便條紙的控制項
+        this.notes.forEach(note => {
+            this.updateControlPositions(note);
+            this.showNoteControls(note);
+        });
     }
 
     deactivate() {
         this.active = false;
-        this.canvas.style.cursor = 'crosshair';
-        this.canvas.removeEventListener('click', this.handleCanvasClick);
-        this.canvas.removeEventListener('mousedown', this.handleCanvasMouseDown);
-        this.canvas.removeEventListener('mousemove', this.handleCanvasMouseMove);
-        this.canvas.removeEventListener('mouseup', this.handleCanvasMouseUp);
+        this.canvas.style.cursor = 'default';
         this.selectedNote = null;
         this.isDragging = false;
+        this.isResizing = false;
         console.log('Notes tool deactivated');
+        
+        // 隱藏所有控制項
+        this.notes.forEach(note => {
+            this.hideNoteControls(note);
+        });
     }
 
     handleCanvasClick(e) {
-        if (!this.active || this.isDragging) return;
-
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -52,111 +80,65 @@ class NotesModule {
         const clickedNote = this.getNoteAtPosition(x, y);
         
         if (clickedNote) {
-            // 點擊現有便條紙，開始編輯
-            this.editNote(clickedNote);
+            this.selectNote(clickedNote);
         } else {
             // 點擊空白區域，新增便條紙
             this.createNote(x, y);
         }
     }
 
-    handleCanvasMouseDown(e) {
-        if (!this.active) return;
-
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const clickedNote = this.getNoteAtPosition(x, y);
-        
-        if (clickedNote) {
-            this.selectedNote = clickedNote;
-            this.isDragging = true;
-            this.dragOffset.x = x - clickedNote.x;
-            this.dragOffset.y = y - clickedNote.y;
-            this.canvas.style.cursor = 'move';
-            e.preventDefault(); // 防止觸發 click 事件
-        }
-    }
-
-    handleCanvasMouseMove(e) {
-        if (!this.active || !this.isDragging || !this.selectedNote) return;
-
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        // 更新便條紙位置
-        this.selectedNote.x = x - this.dragOffset.x;
-        this.selectedNote.y = y - this.dragOffset.y;
-
-        // 重繪畫布
-        this.redrawCanvas();
-    }
-
-    handleCanvasMouseUp(e) {
-        if (!this.active) return;
-
-        if (this.isDragging) {
-            this.isDragging = false;
-            this.canvas.style.cursor = 'crosshair';
-            
-            // 將便條紙位置更新到繪圖歷史中
-            this.updateNoteInHistory(this.selectedNote);
-        }
-    }
-
     createNote(x, y) {
-        const note = {
-            id: this.nextId++,
-            x: x,
-            y: y,
-            width: 120,
-            height: 80,
-            text: '',
-            color: '#ffeb3b', // 預設黃色
-            textColor: '#000000',
-            fontSize: 14,
-            fontFamily: 'Arial'
-        };
-
-        this.notes.push(note);
-        this.addNoteToHistory(note);
-        this.redrawCanvas();
+        const noteId = `note-${this.nextId++}`;
         
-        // 立即開始編輯新便條紙
-        setTimeout(() => {
-            this.editNote(note);
-        }, 100);
-    }
+        // 建立便條紙容器
+        const noteContainer = document.createElement('div');
+        noteContainer.id = noteId;
+        noteContainer.className = 'note-container';
+        noteContainer.style.cssText = `
+            position: absolute;
+            left: ${x}px;
+            top: ${y}px;
+            width: ${this.defaultWidth}px;
+            height: ${this.defaultHeight}px;
+            background-color: #ffeb3b;
+            border: 2px solid #f59e0b;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            cursor: move;
+            user-select: none;
+            z-index: 50;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            padding: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        `;
 
-    editNote(note) {
-        // 建立文字輸入區域
+        // 建立文字區域
         const textarea = document.createElement('textarea');
-        textarea.style.position = 'absolute';
-        textarea.style.left = `${note.x + this.canvas.offsetLeft + 5}px`;
-        textarea.style.top = `${note.y + this.canvas.offsetTop + 5}px`;
-        textarea.style.width = `${note.width - 10}px`;
-        textarea.style.height = `${note.height - 10}px`;
-        textarea.style.border = 'none';
-        textarea.style.outline = 'none';
-        textarea.style.padding = '5px';
-        textarea.style.fontSize = `${note.fontSize}px`;
-        textarea.style.fontFamily = note.fontFamily;
-        textarea.style.color = note.textColor;
-        textarea.style.background = 'transparent';
-        textarea.style.zIndex = '100';
-        textarea.style.resize = 'none';
-        textarea.style.overflow = 'hidden';
-        textarea.value = note.text;
+        textarea.className = 'note-text';
+        textarea.placeholder = '輸入文字...';
+        textarea.style.cssText = `
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            resize: none;
+            font-family: inherit;
+            font-size: inherit;
+            text-align: center;
+            overflow: hidden;
+        `;
 
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-
-        // 事件監聽
+        // 設定文字區域事件
         textarea.addEventListener('blur', () => {
-            this.handleTextareaBlur(textarea, note);
+            if (!textarea.value.trim()) {
+                this.deleteNote(noteContainer);
+            }
         });
 
         textarea.addEventListener('keydown', (e) => {
@@ -165,150 +147,298 @@ class NotesModule {
                 textarea.blur();
             }
             if (e.key === 'Escape') {
-                textarea.value = note.text; // 恢復原始文字
                 textarea.blur();
             }
         });
+
+        noteContainer.appendChild(textarea);
+
+        // 建立控制項
+        this.createNoteControls(noteContainer);
+
+        // 添加到陣列和頁面
+        this.notes.push(noteContainer);
+        document.body.appendChild(noteContainer);
+
+        // 選中新便條紙並聚焦文字區域
+        this.selectNote(noteContainer);
+        setTimeout(() => {
+            textarea.focus();
+        }, 100);
+
+        console.log('便條紙已建立:', noteId);
+        return noteContainer;
     }
 
-    handleTextareaBlur(textarea, note) {
-        const newText = textarea.value;
-        note.text = newText;
+    createNoteControls(noteContainer) {
+        // 移動按鈕（左上角）
+        const moveBtn = document.createElement('button');
+        moveBtn.innerHTML = '✋';
+        moveBtn.title = '移動便條紙';
+        moveBtn.className = 'move-handle note-control-btn';
+        moveBtn.style.cssText = `
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #f59e0b;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: move;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s ease;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+        `;
 
-        // 如果文字為空，刪除便條紙
-        if (!newText.trim()) {
-            this.deleteNote(note);
-        } else {
-            this.updateNoteInHistory(note);
-        }
+        // 為移動按鈕添加拖曳事件
+        moveBtn.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            this.isDragging = true;
+            this.selectedNote = noteContainer;
+            this.selectNote(noteContainer);
 
-        // 移除 textarea
-        if (textarea.parentNode === document.body) {
-            document.body.removeChild(textarea);
-        }
+            const rect = noteContainer.getBoundingClientRect();
+            this.dragOffset = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
 
-        this.redrawCanvas();
+            e.preventDefault();
+        });
+
+        // 刪除按鈕（右上角）
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.title = '刪除便條紙';
+        deleteBtn.className = 'note-control-btn';
+        deleteBtn.style.cssText = `
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #ef4444;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s ease;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+        `;
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteNote(noteContainer);
+        });
+
+        // 縮放控制點（右下角）
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'resize-handle note-control-btn';
+        resizeHandle.style.cssText = `
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #10b981;
+            border: 2px solid white;
+            cursor: se-resize;
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 0.2s ease;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        // 在縮放控制點中新增箭頭圖示
+        resizeHandle.innerHTML = `
+            <div style="
+                color: white;
+                font-size: 10px;
+                line-height: 1;
+                transform: rotate(-45deg);
+            ">↕</div>
+        `;
+
+        // 為縮放控制點添加縮放事件
+        resizeHandle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            this.isResizing = true;
+            this.selectedNote = noteContainer;
+            this.resizeHandle = resizeHandle;
+            this.selectNote(noteContainer);
+            e.preventDefault();
+        });
+
+        // 將控制項新增到 document.body
+        document.body.appendChild(moveBtn);
+        document.body.appendChild(deleteBtn);
+        document.body.appendChild(resizeHandle);
+
+        // 儲存控制項參考
+        noteContainer.moveBtn = moveBtn;
+        noteContainer.deleteBtn = deleteBtn;
+        noteContainer.resizeHandle = resizeHandle;
+
+        // 初始位置更新
+        this.updateControlPositions(noteContainer);
     }
 
-    deleteNote(note) {
-        // 從便條紙陣列中移除
-        const index = this.notes.findIndex(n => n.id === note.id);
-        if (index !== -1) {
-            this.notes.splice(index, 1);
-        }
+    updateControlPositions(noteContainer) {
+        if (!noteContainer.moveBtn) return;
 
-        // 從繪圖歷史中移除
-        this.removeNoteFromHistory(note);
+        const rect = noteContainer.getBoundingClientRect();
+        
+        // 移動按鈕位置（左上角）
+        noteContainer.moveBtn.style.left = (rect.left - 15) + 'px';
+        noteContainer.moveBtn.style.top = (rect.top - 15) + 'px';
+        
+        // 刪除按鈕位置（右上角）
+        noteContainer.deleteBtn.style.left = (rect.right - 15) + 'px';
+        noteContainer.deleteBtn.style.top = (rect.top - 15) + 'px';
+        
+        // 縮放控制點位置（右下角）
+        noteContainer.resizeHandle.style.left = (rect.right - 15) + 'px';
+        noteContainer.resizeHandle.style.top = (rect.bottom - 15) + 'px';
+    }
+
+    selectNote(noteContainer) {
+        // 取消之前的選擇
+        if (this.selectedNote && this.selectedNote !== noteContainer) {
+            this.selectedNote.style.border = '2px solid #f59e0b';
+        }
+        
+        // 設定新的選擇
+        this.selectedNote = noteContainer;
+        noteContainer.style.border = '3px solid #ef4444';
+        
+        // 更新控制項位置並顯示
+        this.updateControlPositions(noteContainer);
+        this.showNoteControls(noteContainer);
+        
+        console.log('便條紙已選中:', noteContainer.id);
+    }
+
+    showNoteControls(noteContainer) {
+        if (!this.active || !noteContainer.moveBtn) return;
+        
+        noteContainer.moveBtn.style.opacity = '1';
+        noteContainer.deleteBtn.style.opacity = '1';
+        noteContainer.resizeHandle.style.opacity = '1';
+    }
+
+    hideNoteControls(noteContainer) {
+        if (!noteContainer.moveBtn) return;
+        
+        noteContainer.moveBtn.style.opacity = '0';
+        noteContainer.deleteBtn.style.opacity = '0';
+        noteContainer.resizeHandle.style.opacity = '0';
     }
 
     getNoteAtPosition(x, y) {
-        // 從後往前檢查（最新的便條紙在最上層）
         for (let i = this.notes.length - 1; i >= 0; i--) {
             const note = this.notes[i];
-            if (x >= note.x && x <= note.x + note.width &&
-                y >= note.y && y <= note.y + note.height) {
+            const rect = note.getBoundingClientRect();
+            const canvasRect = this.canvas.getBoundingClientRect();
+            
+            // 轉換為相對於畫布的座標
+            const relativeX = x + canvasRect.left;
+            const relativeY = y + canvasRect.top;
+            
+            if (relativeX >= rect.left && relativeX <= rect.right &&
+                relativeY >= rect.top && relativeY <= rect.bottom) {
                 return note;
             }
         }
         return null;
     }
 
-    addNoteToHistory(note) {
-        this.canvasModule.drawingHistory.push({
-            tool: 'note',
-            id: note.id,
-            x: note.x,
-            y: note.y,
-            width: note.width,
-            height: note.height,
-            text: note.text,
-            color: note.color,
-            textColor: note.textColor,
-            fontSize: note.fontSize,
-            fontFamily: note.fontFamily
-        });
+    handleMouseDown(e) {
+        // 處理控制按鈕的拖曳邏輯已在按鈕事件中處理
     }
 
-    updateNoteInHistory(note) {
-        // 找到並更新繪圖歷史中的便條紙
-        const historyItem = this.canvasModule.drawingHistory.find(
-            item => item.tool === 'note' && item.id === note.id
-        );
-        
-        if (historyItem) {
-            historyItem.x = note.x;
-            historyItem.y = note.y;
-            historyItem.text = note.text;
-            historyItem.color = note.color;
-            historyItem.textColor = note.textColor;
+    handleMouseMove(e) {
+        if (!this.active) return;
+
+        if (this.isDragging && this.selectedNote) {
+            const newX = e.clientX - this.dragOffset.x;
+            const newY = e.clientY - this.dragOffset.y;
+            this.selectedNote.style.left = newX + 'px';
+            this.selectedNote.style.top = newY + 'px';
+            this.updateControlPositions(this.selectedNote);
+        } else if (this.isResizing && this.selectedNote) {
+            const rect = this.selectedNote.getBoundingClientRect();
+            const newWidth = Math.max(this.minWidth, e.clientX - rect.left);
+            const newHeight = Math.max(this.minHeight, e.clientY - rect.top);
+            
+            this.selectedNote.style.width = newWidth + 'px';
+            this.selectedNote.style.height = newHeight + 'px';
+            this.updateControlPositions(this.selectedNote);
         }
     }
 
-    removeNoteFromHistory(note) {
-        const index = this.canvasModule.drawingHistory.findIndex(
-            item => item.tool === 'note' && item.id === note.id
-        );
-        
+    handleMouseUp(e) {
+        if (!this.active) return;
+
+        this.isDragging = false;
+        this.isResizing = false;
+        this.resizeHandle = null;
+    }
+
+    deleteNote(noteContainer) {
+        // 從陣列中移除
+        const index = this.notes.findIndex(note => note === noteContainer);
         if (index !== -1) {
-            this.canvasModule.drawingHistory.splice(index, 1);
+            this.notes.splice(index, 1);
+        }
+
+        // 移除控制按鈕
+        if (noteContainer.moveBtn && noteContainer.moveBtn.parentNode) {
+            noteContainer.moveBtn.parentNode.removeChild(noteContainer.moveBtn);
+        }
+        if (noteContainer.deleteBtn && noteContainer.deleteBtn.parentNode) {
+            noteContainer.deleteBtn.parentNode.removeChild(noteContainer.deleteBtn);
+        }
+        if (noteContainer.resizeHandle && noteContainer.resizeHandle.parentNode) {
+            noteContainer.resizeHandle.parentNode.removeChild(noteContainer.resizeHandle);
+        }
+
+        // 移除便條紙本身
+        if (noteContainer.parentNode) {
+            noteContainer.parentNode.removeChild(noteContainer);
+        }
+
+        // 清除選擇
+        if (this.selectedNote === noteContainer) {
+            this.selectedNote = null;
+        }
+
+        console.log('便條紙已刪除:', noteContainer.id);
+    }
+
+    deleteSelectedNote() {
+        if (this.selectedNote) {
+            this.deleteNote(this.selectedNote);
         }
     }
 
-    redrawCanvas() {
-        this.backgroundModule.drawBackground();
-        this.canvasModule.redrawAllContent();
-    }
-
-    // 在 CanvasModule 的 redrawAllContent 中會呼叫此方法
-    drawNote(noteData) {
-        const ctx = this.canvasModule.getContext();
-        
-        // 繪製便條紙背景
-        ctx.fillStyle = noteData.color;
-        ctx.fillRect(noteData.x, noteData.y, noteData.width, noteData.height);
-        
-        // 繪製邊框
-        ctx.strokeStyle = '#ddd';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(noteData.x, noteData.y, noteData.width, noteData.height);
-        
-        // 繪製文字
-        if (noteData.text) {
-            ctx.fillStyle = noteData.textColor;
-            ctx.font = `${noteData.fontSize}px ${noteData.fontFamily}`;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-            
-            // 文字換行處理
-            const words = noteData.text.split(' ');
-            const lineHeight = noteData.fontSize + 2;
-            const maxWidth = noteData.width - 10;
-            let line = '';
-            let y = noteData.y + 5;
-            
-            for (let i = 0; i < words.length; i++) {
-                const testLine = line + words[i] + ' ';
-                const metrics = ctx.measureText(testLine);
-                const testWidth = metrics.width;
-                
-                if (testWidth > maxWidth && i > 0) {
-                    ctx.fillText(line, noteData.x + 5, y);
-                    line = words[i] + ' ';
-                    y += lineHeight;
-                    
-                    // 檢查是否超出便條紙高度
-                    if (y + lineHeight > noteData.y + noteData.height - 5) {
-                        break;
-                    }
-                } else {
-                    line = testLine;
-                }
-            }
-            
-            // 繪製最後一行
-            if (line.trim() && y + lineHeight <= noteData.y + noteData.height - 5) {
-                ctx.fillText(line, noteData.x + 5, y);
-            }
-        }
+    // 清空所有便條紙
+    clearAllNotes() {
+        [...this.notes].forEach(note => {
+            this.deleteNote(note);
+        });
+        this.notes = [];
     }
 } 

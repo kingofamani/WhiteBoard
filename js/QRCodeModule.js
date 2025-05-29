@@ -5,15 +5,25 @@ class QRCodeModule {
         this.app = appInstance;
         this.canvas = this.canvasModule.getCanvasElement();
         this.active = false;
-        this.qrCodes = []; // 儲存所有 QR codes
+        this.qrCodes = []; // 儲存所有 QR code DOM元素
         this.nextId = 1; // QR code ID 計數器
+        this.selectedQR = null; // 當前選中的QR code
+        this.isDragging = false;
+        this.isResizing = false;
+        this.dragOffset = { x: 0, y: 0 };
+        this.resizeHandle = null;
         this.qrPanel = null;
         this.isVisible = false;
+
+        // 預設設定
+        this.defaultSize = 150;
+        this.minSize = 80;
 
         // 綁定事件處理函數
         this.handleCanvasClick = this.handleCanvasClick.bind(this);
         
         this.createQRPanel();
+        this.bindEvents();
     }
 
     createQRPanel() {
@@ -116,6 +126,12 @@ class QRCodeModule {
         this.active = true;
         this.show();
         console.log('QR Code tool activated');
+        
+        // 顯示所有QR code的控制項
+        this.qrCodes.forEach(qr => {
+            this.updateControlPositions(qr);
+            this.showQRControls(qr);
+        });
     }
 
     deactivate() {
@@ -123,7 +139,15 @@ class QRCodeModule {
         this.hide();
         this.canvas.style.cursor = 'crosshair';
         this.canvas.removeEventListener('click', this.handleCanvasClick);
+        this.selectedQR = null;
+        this.isDragging = false;
+        this.isResizing = false;
         console.log('QR Code tool deactivated');
+        
+        // 隱藏所有控制項
+        this.qrCodes.forEach(qr => {
+            this.hideQRControls(qr);
+        });
     }
 
     show() {
@@ -194,57 +218,127 @@ class QRCodeModule {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        const text = document.getElementById('qrTextInput').value.trim();
-        const size = parseInt(document.getElementById('qrSizeSlider').value);
+        // 檢查是否點擊在現有QR code上
+        const clickedQR = this.getQRAtPosition(x, y);
+        
+        if (clickedQR) {
+            this.selectQR(clickedQR);
+        } else {
+            const text = document.getElementById('qrTextInput').value.trim();
+            const size = parseInt(document.getElementById('qrSizeSlider').value);
 
-        if (text) {
-            this.createQRCodeOnCanvas(x, y, text, size);
-            // 移除點擊監聽器
-            this.canvas.removeEventListener('click', this.handleCanvasClick);
-            this.canvas.style.cursor = 'default';
+            if (text) {
+                this.createQRCodeOnCanvas(x, y, text, size);
+                // 移除點擊監聽器
+                this.canvas.removeEventListener('click', this.handleCanvasClick);
+                this.canvas.style.cursor = 'default';
+            }
         }
     }
 
     async createQRCodeOnCanvas(x, y, text, size) {
-        const qrData = {
-            id: this.nextId++,
-            x: x - size / 2, // 置中
-            y: y - size / 2, // 置中
-            width: size,
-            height: size,
-            text: text,
-            dataURL: null
-        };
-
+        const qrCodeId = `qr-${this.nextId++}`;
+        
         try {
             // 顯示載入狀態
             this.showLoadingMessage('正在生成 QR Code...');
             
-            // 使用真正的 QR code API 生成圖片
-            const qrImageUrl = this.generateQRCodeURL(text, size);
+            // 建立QR Code容器
+            const qrContainer = document.createElement('div');
+            qrContainer.id = qrCodeId;
+            qrContainer.className = 'qr-container';
+            qrContainer.style.cssText = `
+                position: absolute;
+                left: ${x - size / 2}px;
+                top: ${y - size / 2}px;
+                width: ${size}px;
+                height: ${size}px;
+                border: 2px solid #10b981;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                cursor: move;
+                user-select: none;
+                z-index: 50;
+                background: white;
+                padding: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+            `;
+
+            // 建立QR Code圖片
+            const qrImage = document.createElement('img');
+            qrImage.style.cssText = `
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            `;
+
+            // 產生QR Code
+            const qrImageUrl = this.generateQRCodeURL(text, size - 8); // 減去padding
             
-            // 將圖片轉換為 dataURL
-            const dataURL = await this.imageUrlToDataURL(qrImageUrl);
-            qrData.dataURL = dataURL;
+            // 處理圖片載入
+            qrImage.onload = () => {
+                this.hideLoadingMessage();
+                console.log('QR Code loaded successfully');
+            };
             
-            this.qrCodes.push(qrData);
-            this.addQRToHistory(qrData);
-            this.redrawCanvas();
+            qrImage.onerror = () => {
+                console.error('QR Code loading failed');
+                // 顯示錯誤佔位符
+                qrContainer.innerHTML = `
+                    <div style="
+                        width: 100%;
+                        height: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        background: #f3f4f6;
+                        color: #6b7280;
+                        font-size: 12px;
+                        text-align: center;
+                        padding: 8px;
+                        box-sizing: border-box;
+                    ">
+                        <div>QR Code</div>
+                        <div style="font-size: 10px; margin-top: 4px;">${text.length > 20 ? text.substring(0, 20) + '...' : text}</div>
+                    </div>
+                `;
+                this.hideLoadingMessage();
+            };
+            
+            qrImage.src = qrImageUrl;
+            qrImage.alt = `QR Code: ${text}`;
+            qrContainer.appendChild(qrImage);
+
+            // 建立控制項
+            this.createQRControls(qrContainer);
+
+            // 儲存相關資料
+            qrContainer.qrData = {
+                id: qrCodeId,
+                text: text,
+                size: size,
+                originalSize: size
+            };
+
+            // 添加到陣列和頁面
+            this.qrCodes.push(qrContainer);
+            document.body.appendChild(qrContainer);
+
+            // 選中新建立的QR code
+            this.selectQR(qrContainer);
             
             this.hideLoadingMessage();
-            console.log('QR Code created:', qrData);
+            console.log('QR Code 已建立:', qrCodeId);
+            return qrContainer;
+
         } catch (error) {
             this.hideLoadingMessage();
-            console.error('Error creating QR Code on canvas:', error);
-            
-            // 即使失敗也創建一個備用的 QR code
-            qrData.dataURL = this.createFallbackQRCode(text, size);
-            this.qrCodes.push(qrData);
-            this.addQRToHistory(qrData);
-            this.redrawCanvas();
-            
-            // 顯示友善的錯誤訊息
-            this.showErrorMessage('QR Code 生成失敗，已使用備用方案。請檢查網路連線。');
+            console.error('建立 QR Code 時發生錯誤:', error);
+            this.showErrorMessage('QR Code 建立失敗，請重試');
         }
     }
 
@@ -279,166 +373,353 @@ class QRCodeModule {
         }, 3000);
     }
 
-    createFallbackQRCode(text, size) {
-        // 建立一個更好看的備用 QR code
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = size;
-        canvas.height = size;
-
-        // 白色背景
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
-
-        // 黑色邊框
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(1, 1, size - 2, size - 2);
-
-        // 繪製簡單的 QR code 樣式圖案
-        ctx.fillStyle = '#000000';
-        const cellSize = Math.floor(size / 25);
-        
-        // 繪製定位標記（三個角落的方塊）
-        this.drawPositionMarker(ctx, 5, 5, cellSize * 7);
-        this.drawPositionMarker(ctx, size - cellSize * 7 - 5, 5, cellSize * 7);
-        this.drawPositionMarker(ctx, 5, size - cellSize * 7 - 5, cellSize * 7);
-
-        // 繪製一些隨機點陣（基於文字內容）
-        for (let i = 0; i < 25; i++) {
-            for (let j = 0; j < 25; j++) {
-                // 避開定位標記區域
-                if ((i < 9 && j < 9) || (i > 15 && j < 9) || (i < 9 && j > 15)) {
-                    continue;
-                }
-                
-                // 使用文字內容生成偽隨機圖案
-                const hash = this.simpleHash(text + i + j);
-                if (hash % 3 === 0) {
-                    ctx.fillRect(i * cellSize + 2, j * cellSize + 2, cellSize - 1, cellSize - 1);
-                }
-            }
-        }
-
-        // 添加文字標籤
-        ctx.fillStyle = '#666666';
-        ctx.font = `${Math.max(10, size / 12)}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const shortText = text.length > 20 ? text.substring(0, 20) + '...' : text;
-        ctx.fillText(shortText, size / 2, size - 15);
-
-        return canvas.toDataURL();
-    }
-
-    drawPositionMarker(ctx, x, y, size) {
-        // 外框
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(x, y, size, size);
-        
-        // 內部白色
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(x + size * 0.15, y + size * 0.15, size * 0.7, size * 0.7);
-        
-        // 中心黑點
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(x + size * 0.35, y + size * 0.35, size * 0.3, size * 0.3);
-    }
-
-    simpleHash(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32bit integer
-        }
-        return Math.abs(hash);
-    }
-
     generateQRCodeURL(text, size) {
         // 使用 qr-server.com API 生成真正的 QR code
         const encodedText = encodeURIComponent(text);
         return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedText}&format=png&margin=10`;
     }
 
-    async imageUrlToDataURL(imageUrl) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            // 不設置 crossOrigin，因為 qr-server.com 支援跨域
-            
-            img.onload = () => {
-                try {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    
-                    ctx.drawImage(img, 0, 0);
-                    const dataURL = canvas.toDataURL('image/png');
-                    resolve(dataURL);
-                } catch (error) {
-                    console.error('Failed to convert image to dataURL:', error);
-                    // 如果轉換失敗，直接使用原始 URL
-                    resolve(imageUrl);
-                }
-            };
-            
-            img.onerror = (error) => {
-                console.error('Failed to load QR code image:', error);
-                // 如果載入失敗，返回一個備用的 dataURL
-                resolve(this.createFallbackQRCode('載入失敗', 150));
-            };
-            
-            img.src = imageUrl;
+    bindEvents() {
+        // 監聽畫布點擊事件
+        document.addEventListener('click', (e) => {
+            if (this.active && (e.target.id === 'whiteboard' || e.target.id === 'testArea')) {
+                this.handleCanvasClick(e);
+            }
         });
-    }
 
-    addQRToHistory(qrData) {
-        this.canvasModule.drawingHistory.push({
-            tool: 'qrcode',
-            id: qrData.id,
-            x: qrData.x,
-            y: qrData.y,
-            width: qrData.width,
-            height: qrData.height,
-            text: qrData.text,
-            dataURL: qrData.dataURL
+        // 監聽鍵盤事件
+        document.addEventListener('keydown', (e) => {
+            if (this.active && e.key === 'Delete' && this.selectedQR) {
+                this.deleteSelectedQR();
+            }
         });
+
+        // 監聽滑鼠事件
+        document.addEventListener('mousedown', this.handleMouseDown.bind(this));
+        document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+        document.addEventListener('mouseup', this.handleMouseUp.bind(this));
     }
 
-    redrawCanvas() {
-        this.backgroundModule.drawBackground();
-        this.canvasModule.redrawAllContent();
-    }
-
-    // 在 CanvasModule 的 redrawAllContent 中會呼叫此方法
-    drawQRCode(qrData) {
-        const ctx = this.canvasModule.getContext();
-        
-        if (qrData.dataURL) {
-            const img = new Image();
-            img.onload = () => {
-                ctx.drawImage(img, qrData.x, qrData.y, qrData.width, qrData.height);
-            };
-            img.src = qrData.dataURL;
-        } else {
-            // 備用繪製方法 - 顯示載入中
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(qrData.x, qrData.y, qrData.width, qrData.height);
-            
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(qrData.x, qrData.y, qrData.width, qrData.height);
-            
-            ctx.fillStyle = '#000000';
-            ctx.font = '14px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('載入中...', qrData.x + qrData.width / 2, qrData.y + qrData.height / 2 - 10);
-            
-            const shortText = qrData.text.length > 10 ? qrData.text.substring(0, 10) + '...' : qrData.text;
-            ctx.font = '10px Arial';
-            ctx.fillText(shortText, qrData.x + qrData.width / 2, qrData.y + qrData.height / 2 + 10);
+    handleMouseDown(e) {
+        if (this.active && (e.target.id === 'whiteboard' || e.target.id === 'testArea')) {
+            this.isDragging = true;
+            this.dragOffset.x = e.clientX - this.selectedQR.x;
+            this.dragOffset.y = e.clientY - this.selectedQR.y;
         }
+    }
+
+    handleMouseMove(e) {
+        if (this.isDragging) {
+            const rect = this.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            this.selectedQR.x = x - this.dragOffset.x;
+            this.selectedQR.y = y - this.dragOffset.y;
+
+            this.redrawCanvas();
+        }
+    }
+
+    handleMouseUp(e) {
+        if (this.active && (e.target.id === 'whiteboard' || e.target.id === 'testArea')) {
+            this.isDragging = false;
+        }
+    }
+
+    deleteSelectedQR() {
+        if (this.selectedQR) {
+            const index = this.qrCodes.findIndex(qr => qr.id === this.selectedQR.id);
+            if (index !== -1) {
+                this.qrCodes.splice(index, 1);
+                this.redrawCanvas();
+            }
+            this.selectedQR = null;
+        }
+    }
+
+    createQRControls(qrContainer) {
+        // 移動按鈕（左上角）
+        const moveBtn = document.createElement('button');
+        moveBtn.innerHTML = '✋';
+        moveBtn.title = '移動QR Code';
+        moveBtn.className = 'move-handle qr-control-btn';
+        moveBtn.style.cssText = `
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #10b981;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: move;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s ease;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+        `;
+
+        // 為移動按鈕添加拖曳事件
+        moveBtn.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            this.isDragging = true;
+            this.selectedQR = qrContainer;
+            this.selectQR(qrContainer);
+
+            const rect = qrContainer.getBoundingClientRect();
+            this.dragOffset = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+
+            e.preventDefault();
+        });
+
+        // 刪除按鈕（右上角）
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.title = '刪除QR Code';
+        deleteBtn.className = 'qr-control-btn';
+        deleteBtn.style.cssText = `
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #ef4444;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s ease;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+        `;
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteQR(qrContainer);
+        });
+
+        // 縮放控制點（右下角）
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'resize-handle qr-control-btn';
+        resizeHandle.style.cssText = `
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #3b82f6;
+            border: 2px solid white;
+            cursor: se-resize;
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 0.2s ease;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        // 在縮放控制點中新增箭頭圖示
+        resizeHandle.innerHTML = `
+            <div style="
+                color: white;
+                font-size: 10px;
+                line-height: 1;
+                transform: rotate(-45deg);
+            ">↕</div>
+        `;
+
+        // 為縮放控制點添加縮放事件
+        resizeHandle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            this.isResizing = true;
+            this.selectedQR = qrContainer;
+            this.resizeHandle = resizeHandle;
+            this.selectQR(qrContainer);
+            e.preventDefault();
+        });
+
+        // 將控制項新增到 document.body
+        document.body.appendChild(moveBtn);
+        document.body.appendChild(deleteBtn);
+        document.body.appendChild(resizeHandle);
+
+        // 儲存控制項參考
+        qrContainer.moveBtn = moveBtn;
+        qrContainer.deleteBtn = deleteBtn;
+        qrContainer.resizeHandle = resizeHandle;
+
+        // 初始位置更新
+        this.updateControlPositions(qrContainer);
+    }
+
+    updateControlPositions(qrContainer) {
+        if (!qrContainer.moveBtn) return;
+
+        const rect = qrContainer.getBoundingClientRect();
+        
+        // 移動按鈕位置（左上角）
+        qrContainer.moveBtn.style.left = (rect.left - 15) + 'px';
+        qrContainer.moveBtn.style.top = (rect.top - 15) + 'px';
+        
+        // 刪除按鈕位置（右上角）
+        qrContainer.deleteBtn.style.left = (rect.right - 15) + 'px';
+        qrContainer.deleteBtn.style.top = (rect.top - 15) + 'px';
+        
+        // 縮放控制點位置（右下角）
+        qrContainer.resizeHandle.style.left = (rect.right - 15) + 'px';
+        qrContainer.resizeHandle.style.top = (rect.bottom - 15) + 'px';
+    }
+
+    selectQR(qrContainer) {
+        // 取消之前的選擇
+        if (this.selectedQR && this.selectedQR !== qrContainer) {
+            this.selectedQR.style.border = '2px solid #10b981';
+        }
+        
+        // 設定新的選擇
+        this.selectedQR = qrContainer;
+        qrContainer.style.border = '3px solid #ef4444';
+        
+        // 更新控制項位置並顯示
+        this.updateControlPositions(qrContainer);
+        this.showQRControls(qrContainer);
+        
+        console.log('QR Code已選中:', qrContainer.id);
+    }
+
+    showQRControls(qrContainer) {
+        if (!this.active || !qrContainer.moveBtn) return;
+        
+        qrContainer.moveBtn.style.opacity = '1';
+        qrContainer.deleteBtn.style.opacity = '1';
+        qrContainer.resizeHandle.style.opacity = '1';
+    }
+
+    hideQRControls(qrContainer) {
+        if (!qrContainer.moveBtn) return;
+        
+        qrContainer.moveBtn.style.opacity = '0';
+        qrContainer.deleteBtn.style.opacity = '0';
+        qrContainer.resizeHandle.style.opacity = '0';
+    }
+
+    getQRAtPosition(x, y) {
+        for (let i = this.qrCodes.length - 1; i >= 0; i--) {
+            const qr = this.qrCodes[i];
+            const rect = qr.getBoundingClientRect();
+            const canvasRect = this.canvas.getBoundingClientRect();
+            
+            // 轉換為相對於畫布的座標
+            const relativeX = x + canvasRect.left;
+            const relativeY = y + canvasRect.top;
+            
+            if (relativeX >= rect.left && relativeX <= rect.right &&
+                relativeY >= rect.top && relativeY <= rect.bottom) {
+                return qr;
+            }
+        }
+        return null;
+    }
+
+    handleMouseDown(e) {
+        // 處理控制按鈕的拖曳邏輯已在按鈕事件中處理
+    }
+
+    handleMouseMove(e) {
+        if (!this.active) return;
+
+        if (this.isDragging && this.selectedQR) {
+            const newX = e.clientX - this.dragOffset.x;
+            const newY = e.clientY - this.dragOffset.y;
+            this.selectedQR.style.left = newX + 'px';
+            this.selectedQR.style.top = newY + 'px';
+            this.updateControlPositions(this.selectedQR);
+        } else if (this.isResizing && this.selectedQR) {
+            const rect = this.selectedQR.getBoundingClientRect();
+            const deltaX = e.clientX - rect.left;
+            const deltaY = e.clientY - rect.top;
+            const avgDelta = (deltaX + deltaY) / 2; // 保持方形比例
+            const newSize = Math.max(this.minSize, avgDelta);
+            
+            this.selectedQR.style.width = newSize + 'px';
+            this.selectedQR.style.height = newSize + 'px';
+            
+            // 更新QR Code圖片大小
+            if (this.selectedQR.qrData) {
+                this.selectedQR.qrData.size = newSize;
+                const qrImage = this.selectedQR.querySelector('img');
+                if (qrImage) {
+                    const newImageSize = newSize - 8; // 減去padding
+                    qrImage.src = this.generateQRCodeURL(this.selectedQR.qrData.text, newImageSize);
+                }
+            }
+            
+            this.updateControlPositions(this.selectedQR);
+        }
+    }
+
+    handleMouseUp(e) {
+        if (!this.active) return;
+
+        this.isDragging = false;
+        this.isResizing = false;
+        this.resizeHandle = null;
+    }
+
+    deleteQR(qrContainer) {
+        // 從陣列中移除
+        const index = this.qrCodes.findIndex(qr => qr === qrContainer);
+        if (index !== -1) {
+            this.qrCodes.splice(index, 1);
+        }
+
+        // 移除控制按鈕
+        if (qrContainer.moveBtn && qrContainer.moveBtn.parentNode) {
+            qrContainer.moveBtn.parentNode.removeChild(qrContainer.moveBtn);
+        }
+        if (qrContainer.deleteBtn && qrContainer.deleteBtn.parentNode) {
+            qrContainer.deleteBtn.parentNode.removeChild(qrContainer.deleteBtn);
+        }
+        if (qrContainer.resizeHandle && qrContainer.resizeHandle.parentNode) {
+            qrContainer.resizeHandle.parentNode.removeChild(qrContainer.resizeHandle);
+        }
+
+        // 移除QR Code本身
+        if (qrContainer.parentNode) {
+            qrContainer.parentNode.removeChild(qrContainer);
+        }
+
+        // 清除選擇
+        if (this.selectedQR === qrContainer) {
+            this.selectedQR = null;
+        }
+
+        console.log('QR Code已刪除:', qrContainer.id);
+    }
+
+    deleteSelectedQR() {
+        if (this.selectedQR) {
+            this.deleteQR(this.selectedQR);
+        }
+    }
+
+    // 清空所有QR Code
+    clearAllQRCodes() {
+        [...this.qrCodes].forEach(qr => {
+            this.deleteQR(qr);
+        });
+        this.qrCodes = [];
     }
 } 

@@ -234,4 +234,62 @@
 #imageTool.active {
     background-color: #5b21b6 !important;
     box-shadow: 0 0 0 2px rgba(91, 33, 182, 0.3);
+}
+
+/* 選擇工具按鈕啟動狀態 - 已整合到上面的統一樣式中 */
+
+/* 滑鼠工具按鈕選取狀態 - 已整合到上面的統一樣式中 */
+
+/* 工具按鈕基本樣式增強 */
+.tool-btn {
+    transition: all 0.2s ease-in-out;
+}
+
+/* 所有工具按鈕的選取狀態 */
+#cursorTool.active, #cursorTool.ring-2 {
+    background-color: #0891b2 !important;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.5) !important;
+    transform: scale(1.05);
+}
+
+#penTool.active, #penTool.ring-2 {
+    background-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5) !important;
+    transform: scale(1.05);
+}
+
+#eraserTool.active, #eraserTool.ring-2 {
+    background-color: #4b5563 !important;
+    box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.5) !important;
+    transform: scale(1.05);
+}
+
+#textTool.active, #textTool.ring-2 {
+    background-color: #d97706 !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.5) !important;
+    transform: scale(1.05);
+}
+
+#notesTool.active, #notesTool.ring-2 {
+    background-color: #ea580c !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.5) !important;
+    transform: scale(1.05);
+}
+
+#qrTool.active, #qrTool.ring-2 {
+    background-color: #059669 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.5) !important;
+    transform: scale(1.05);
+}
+
+#youtubeTool.active, #youtubeTool.ring-2 {
+    background-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.5) !important;
+    transform: scale(1.05);
+}
+
+#imageTool.active, #imageTool.ring-2 {
+    background-color: #7c3aed !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.5) !important;
+    transform: scale(1.05);
 } 

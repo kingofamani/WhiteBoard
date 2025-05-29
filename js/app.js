@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     volumeDetectionModule = new VolumeDetectionModule();
 
     const canvas = canvasModule.getCanvasElement();
+    const cursorTool = document.getElementById('cursorTool');
     const penTool = document.getElementById('penTool');
     const eraserTool = document.getElementById('eraserTool');
     const textToolBtn = document.getElementById('textTool'); // 獲取文字工具按鈕
@@ -53,10 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setActiveToolButton(newToolButton) {
         if (activeToolButton) {
-            activeToolButton.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-700', 'ring-gray-700', 'ring-yellow-700', 'ring-orange-700', 'ring-green-700', 'ring-purple-700', 'ring-red-700', 'ring-indigo-700');
+            activeToolButton.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-700', 'ring-gray-700', 'ring-yellow-700', 'ring-orange-700', 'ring-green-700', 'ring-purple-700', 'ring-red-700', 'ring-indigo-700', 'ring-cyan-700');
         }
         let ringColorClass = '';
-        if (newToolButton === penTool) ringColorClass = 'ring-blue-700';
+        if (newToolButton === cursorTool) ringColorClass = 'ring-cyan-700';
+        else if (newToolButton === penTool) ringColorClass = 'ring-blue-700';
         else if (newToolButton === eraserTool) ringColorClass = 'ring-gray-700';
         else if (newToolButton === textToolBtn) ringColorClass = 'ring-yellow-700';
         else if (newToolButton === notesToolBtn) ringColorClass = 'ring-orange-700';
@@ -70,6 +72,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 工具選擇
+    cursorTool.addEventListener('click', () => {
+        textToolModule.deactivate();
+        notesModule.deactivate();
+        qrCodeModule.deactivate();
+        youtubeModule.deactivate();
+        imageModule.deactivate();
+        canvasModule.setTool('cursor');
+        setActiveToolButton(cursorTool);
+        canvas.style.cursor = 'default'; // 設定選擇工具游標
+    });
+
     penTool.addEventListener('click', () => {
         textToolModule.deactivate(); // 如果文字工具是 활성화 狀態，則停用它
         notesModule.deactivate(); // 停用便條紙工具
@@ -167,8 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 清空畫布
     clearCanvasBtn.addEventListener('click', () => {
         canvasModule.clearCanvas(); // 這會清除畫布和 drawingHistory
-        notesModule.notes = []; // 清空便條紙陣列
-        qrCodeModule.qrCodes = []; // 清空 QR codes 陣列
+        notesModule.clearAllNotes(); // 清空便條紙DOM元素
+        qrCodeModule.clearAllQRCodes(); // 清空 QR codes DOM元素
         youtubeModule.clearAllVideos(); // 清空 YouTube 影片
         imageModule.clearAllImages(); // 清空圖片
         backgroundModule.drawBackground(); // 然後重繪背景
