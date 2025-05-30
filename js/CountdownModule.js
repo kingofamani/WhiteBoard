@@ -844,7 +844,7 @@ class CountdownModule {
     }
 
     showCountdownControls(countdownContainer) {
-        if (!this.active || !countdownContainer.moveBtn) return;
+        if (!countdownContainer.moveBtn) return;
         
         countdownContainer.moveBtn.style.opacity = '1';
         countdownContainer.deleteBtn.style.opacity = '1';
@@ -964,5 +964,22 @@ class CountdownModule {
             this.deleteCountdown(countdown);
         });
         this.countdowns = [];
+    }
+
+    // 直接建立倒數計時器（新增方法）
+    createCountdownDirectly(x, y) {
+        // 直接建立倒數計時器
+        const countdownContainer = this.createCountdown(x, y);
+        
+        console.log('直接建立倒數計時器於位置:', x, y);
+        return countdownContainer;
+    }
+
+    // 隱藏所有倒數計時器控制項（新增方法）
+    hideAllControls() {
+        this.countdowns.forEach(countdown => {
+            this.hideCountdownControls(countdown);
+        });
+        this.selectedCountdown = null;
     }
 } 

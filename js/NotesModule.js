@@ -332,7 +332,7 @@ class NotesModule {
     }
 
     showNoteControls(noteContainer) {
-        if (!this.active || !noteContainer.moveBtn) return;
+        if (!noteContainer.moveBtn) return;
         
         noteContainer.moveBtn.style.opacity = '1';
         noteContainer.deleteBtn.style.opacity = '1';
@@ -440,5 +440,22 @@ class NotesModule {
             this.deleteNote(note);
         });
         this.notes = [];
+    }
+
+    // 直接建立便條紙（新增方法）
+    createNoteDirectly(x, y) {
+        // 直接建立便條紙
+        const noteContainer = this.createNote(x, y);
+        
+        console.log('直接建立便條紙於位置:', x, y);
+        return noteContainer;
+    }
+
+    // 隱藏所有便條紙控制項（新增方法）
+    hideAllControls() {
+        this.notes.forEach(note => {
+            this.hideNoteControls(note);
+        });
+        this.selectedNote = null;
     }
 } 

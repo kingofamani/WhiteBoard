@@ -1,5 +1,9 @@
 class ImageModule {
-    constructor() {
+    constructor(canvasModule, backgroundModule, appInstance) {
+        this.canvasModule = canvasModule;
+        this.backgroundModule = backgroundModule;
+        this.app = appInstance;
+        this.canvas = this.canvasModule.getCanvasElement();
         this.isActive = false;
         this.images = []; // 儲存所有圖片
         this.selectedImage = null; // 當前選中的圖片
@@ -368,8 +372,6 @@ class ImageModule {
     }
 
     showImageControls(image) {
-        if (!this.isActive) return;
-        
         if (image.moveBtn) image.moveBtn.style.opacity = '1';
         if (image.deleteBtn) image.deleteBtn.style.opacity = '1';
         if (image.resizeHandle) image.resizeHandle.style.opacity = '1';
@@ -527,5 +529,29 @@ class ImageModule {
             container.style.width = data.width + 'px';
             container.style.height = data.height + 'px';
         });
+    }
+
+    // 直接建立圖片（新增方法）
+    createImageDirectly(x, y) {
+        // 彈出對話框讓使用者選擇圖片來源
+        const choice = confirm('點擊「確定」上傳圖片檔案\n點擊「取消」輸入圖片網址');
+        
+        if (choice) {
+            // 上傳檔案
+            this.uploadImageFile(x, y);
+        } else {
+            // 輸入 URL
+            this.inputImageURL(x, y);
+        }
+        
+        console.log('直接建立圖片於位置:', x, y);
+    }
+
+    // 隱藏所有圖片控制項（新增方法）
+    hideAllControls() {
+        this.images.forEach(image => {
+            this.hideImageControls(image);
+        });
+        this.selectedImage = null;
     }
 } 

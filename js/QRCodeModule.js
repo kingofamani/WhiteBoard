@@ -14,6 +14,7 @@ class QRCodeModule {
         this.resizeHandle = null;
         this.qrPanel = null;
         this.isVisible = false;
+        this.pendingPosition = null; // 儲存待建立QR code的位置
 
         // 預設設定
         this.defaultSize = 150;
@@ -196,21 +197,34 @@ class QRCodeModule {
         const text = document.getElementById('qrTextInput').value.trim();
         if (!text) return;
 
-        // 準備在畫布上放置 QR code
-        this.canvas.style.cursor = 'crosshair';
-        this.canvas.addEventListener('click', this.handleCanvasClick);
-        
-        // 更新按鈕文字提示
-        const generateBtn = document.getElementById('generateQR');
-        const originalText = generateBtn.textContent;
-        generateBtn.textContent = '點擊畫布放置 QR Code';
-        generateBtn.disabled = true;
+        // 檢查是否有待建立的位置
+        if (this.pendingPosition) {
+            // 直接在指定位置建立QR Code
+            const size = parseInt(document.getElementById('qrSizeSlider').value);
+            this.createQRCodeOnCanvas(this.pendingPosition.x, this.pendingPosition.y, text, size);
+            
+            // 清除待建立位置
+            this.pendingPosition = null;
+            
+            // 隱藏面板
+            this.hide();
+        } else {
+            // 原本的邏輯：準備在畫布上放置 QR code
+            this.canvas.style.cursor = 'crosshair';
+            this.canvas.addEventListener('click', this.handleCanvasClick);
+            
+            // 更新按鈕文字提示
+            const generateBtn = document.getElementById('generateQR');
+            const originalText = generateBtn.textContent;
+            generateBtn.textContent = '點擊畫布放置 QR Code';
+            generateBtn.disabled = true;
 
-        // 3秒後恢復按鈕狀態
-        setTimeout(() => {
-            generateBtn.textContent = originalText;
-            generateBtn.disabled = false;
-        }, 3000);
+            // 3秒後恢復按鈕狀態
+            setTimeout(() => {
+                generateBtn.textContent = originalText;
+                generateBtn.disabled = false;
+            }, 3000);
+        }
     }
 
     handleCanvasClick(e) {
@@ -324,6 +338,15 @@ class QRCodeModule {
                 originalSize: size
             };
 
+            // 為QR碼容器添加點擊事件監聽器
+            qrContainer.addEventListener('mousedown', (e) => {
+                // 只有在cursor工具模式下才處理
+                if (this.canvasModule.currentTool === 'cursor') {
+                    this.selectQR(qrContainer);
+                    console.log('[QRCodeModule.js] QR container clicked directly:', qrContainer.id);
+                }
+            });
+
             // 添加到陣列和頁面
             this.qrCodes.push(qrContainer);
             document.body.appendChild(qrContainer);
@@ -401,40 +424,49 @@ class QRCodeModule {
     }
 
     handleMouseDown(e) {
-        if (this.active && (e.target.id === 'whiteboard' || e.target.id === 'testArea')) {
-            this.isDragging = true;
-            this.dragOffset.x = e.clientX - this.selectedQR.x;
-            this.dragOffset.y = e.clientY - this.selectedQR.y;
-        }
+        // 處理控制按鈕的拖曳邏輯已在按鈕事件中處理
     }
 
     handleMouseMove(e) {
-        if (this.isDragging) {
-            const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            this.selectedQR.x = x - this.dragOffset.x;
-            this.selectedQR.y = y - this.dragOffset.y;
-
-            this.redrawCanvas();
+        if (this.isDragging && this.selectedQR) {
+            const newX = e.clientX - this.dragOffset.x;
+            const newY = e.clientY - this.dragOffset.y;
+            this.selectedQR.style.left = newX + 'px';
+            this.selectedQR.style.top = newY + 'px';
+            this.updateControlPositions(this.selectedQR);
+        } else if (this.isResizing && this.selectedQR) {
+            const rect = this.selectedQR.getBoundingClientRect();
+            const deltaX = e.clientX - rect.left;
+            const deltaY = e.clientY - rect.top;
+            const avgDelta = (deltaX + deltaY) / 2; // 保持方形比例
+            const newSize = Math.max(this.minSize, avgDelta);
+            
+            this.selectedQR.style.width = newSize + 'px';
+            this.selectedQR.style.height = newSize + 'px';
+            
+            // 更新QR Code圖片大小
+            if (this.selectedQR.qrData) {
+                this.selectedQR.qrData.size = newSize;
+                const qrImage = this.selectedQR.querySelector('img');
+                if (qrImage) {
+                    const newImageSize = newSize - 8; // 減去padding
+                    qrImage.src = this.generateQRCodeURL(this.selectedQR.qrData.text, newImageSize);
+                }
+            }
+            
+            this.updateControlPositions(this.selectedQR);
         }
     }
 
     handleMouseUp(e) {
-        if (this.active && (e.target.id === 'whiteboard' || e.target.id === 'testArea')) {
-            this.isDragging = false;
-        }
+        this.isDragging = false;
+        this.isResizing = false;
+        this.resizeHandle = null;
     }
 
     deleteSelectedQR() {
         if (this.selectedQR) {
-            const index = this.qrCodes.findIndex(qr => qr.id === this.selectedQR.id);
-            if (index !== -1) {
-                this.qrCodes.splice(index, 1);
-                this.redrawCanvas();
-            }
-            this.selectedQR = null;
+            this.deleteQR(this.selectedQR);
         }
     }
 
@@ -444,6 +476,7 @@ class QRCodeModule {
         moveBtn.innerHTML = '✋';
         moveBtn.title = '移動QR Code';
         moveBtn.className = 'move-handle qr-control-btn';
+        moveBtn.setAttribute('data-qr-id', qrContainer.id);
         moveBtn.style.cssText = `
             position: absolute;
             width: 30px;
@@ -466,7 +499,6 @@ class QRCodeModule {
 
         // 為移動按鈕添加拖曳事件
         moveBtn.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
             this.isDragging = true;
             this.selectedQR = qrContainer;
             this.selectQR(qrContainer);
@@ -485,6 +517,7 @@ class QRCodeModule {
         deleteBtn.innerHTML = '🗑️';
         deleteBtn.title = '刪除QR Code';
         deleteBtn.className = 'qr-control-btn';
+        deleteBtn.setAttribute('data-qr-id', qrContainer.id);
         deleteBtn.style.cssText = `
             position: absolute;
             width: 30px;
@@ -505,13 +538,13 @@ class QRCodeModule {
             pointer-events: auto;
         `;
         deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
             this.deleteQR(qrContainer);
         });
 
         // 縮放控制點（右下角）
         const resizeHandle = document.createElement('div');
         resizeHandle.className = 'resize-handle qr-control-btn';
+        resizeHandle.setAttribute('data-qr-id', qrContainer.id);
         resizeHandle.style.cssText = `
             position: absolute;
             width: 30px;
@@ -542,7 +575,6 @@ class QRCodeModule {
 
         // 為縮放控制點添加縮放事件
         resizeHandle.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
             this.isResizing = true;
             this.selectedQR = qrContainer;
             this.resizeHandle = resizeHandle;
@@ -583,28 +615,38 @@ class QRCodeModule {
     }
 
     selectQR(qrContainer) {
-        // 取消之前的選擇
+        if (!qrContainer) return;
+
+        // 如果有先前選中的 QR code，隱藏其控制項並重置邊框
         if (this.selectedQR && this.selectedQR !== qrContainer) {
-            this.selectedQR.style.border = '2px solid #10b981';
+            this.hideQRControls(this.selectedQR);
+            // resetElementBorder 由 app.js 處理
         }
-        
-        // 設定新的選擇
+
         this.selectedQR = qrContainer;
-        qrContainer.style.border = '3px solid #ef4444';
-        
-        // 更新控制項位置並顯示
         this.updateControlPositions(qrContainer);
         this.showQRControls(qrContainer);
         
-        console.log('QR Code已選中:', qrContainer.id);
+        // 由 app.js 處理邊框高亮
+        // qrContainer.style.border = '3px dashed #0ea5e9'; // 範例：天藍色虛線邊框
+        // qrContainer.style.boxShadow = '0 0 15px rgba(14, 165, 233, 0.7)';
+
+        console.log('[QRCodeModule.js] QR Code已選中:', qrContainer.id);
     }
 
     showQRControls(qrContainer) {
-        if (!this.active || !qrContainer.moveBtn) return;
+        if (!qrContainer.moveBtn) return;
         
+        console.log('[QRCodeModule.js] showQRControls called for:', qrContainer.id);
+        console.log('[QRCodeModule.js] Move Btn current opacity:', qrContainer.moveBtn.style.opacity);
+        console.log('[QRCodeModule.js] Move Btn current display:', window.getComputedStyle(qrContainer.moveBtn).display);
+        console.log('[QRCodeModule.js] Move Btn current visibility:', window.getComputedStyle(qrContainer.moveBtn).visibility);
+
         qrContainer.moveBtn.style.opacity = '1';
         qrContainer.deleteBtn.style.opacity = '1';
         qrContainer.resizeHandle.style.opacity = '1';
+        
+        console.log('[QRCodeModule.js] Move Btn new opacity:', qrContainer.moveBtn.style.opacity);
     }
 
     hideQRControls(qrContainer) {
@@ -631,51 +673,6 @@ class QRCodeModule {
             }
         }
         return null;
-    }
-
-    handleMouseDown(e) {
-        // 處理控制按鈕的拖曳邏輯已在按鈕事件中處理
-    }
-
-    handleMouseMove(e) {
-        if (!this.active) return;
-
-        if (this.isDragging && this.selectedQR) {
-            const newX = e.clientX - this.dragOffset.x;
-            const newY = e.clientY - this.dragOffset.y;
-            this.selectedQR.style.left = newX + 'px';
-            this.selectedQR.style.top = newY + 'px';
-            this.updateControlPositions(this.selectedQR);
-        } else if (this.isResizing && this.selectedQR) {
-            const rect = this.selectedQR.getBoundingClientRect();
-            const deltaX = e.clientX - rect.left;
-            const deltaY = e.clientY - rect.top;
-            const avgDelta = (deltaX + deltaY) / 2; // 保持方形比例
-            const newSize = Math.max(this.minSize, avgDelta);
-            
-            this.selectedQR.style.width = newSize + 'px';
-            this.selectedQR.style.height = newSize + 'px';
-            
-            // 更新QR Code圖片大小
-            if (this.selectedQR.qrData) {
-                this.selectedQR.qrData.size = newSize;
-                const qrImage = this.selectedQR.querySelector('img');
-                if (qrImage) {
-                    const newImageSize = newSize - 8; // 減去padding
-                    qrImage.src = this.generateQRCodeURL(this.selectedQR.qrData.text, newImageSize);
-                }
-            }
-            
-            this.updateControlPositions(this.selectedQR);
-        }
-    }
-
-    handleMouseUp(e) {
-        if (!this.active) return;
-
-        this.isDragging = false;
-        this.isResizing = false;
-        this.resizeHandle = null;
     }
 
     deleteQR(qrContainer) {
@@ -709,17 +706,39 @@ class QRCodeModule {
         console.log('QR Code已刪除:', qrContainer.id);
     }
 
-    deleteSelectedQR() {
-        if (this.selectedQR) {
-            this.deleteQR(this.selectedQR);
-        }
-    }
-
     // 清空所有QR Code
     clearAllQRCodes() {
         [...this.qrCodes].forEach(qr => {
             this.deleteQR(qr);
         });
         this.qrCodes = [];
+    }
+
+    // 直接建立QR Code（新增方法）
+    createQRDirectly(x, y) {
+        // 儲存位置以供後續使用
+        this.pendingPosition = { x, y };
+        
+        // 顯示QR code設定面板
+        this.show();
+        
+        // 清空之前的輸入
+        const textInput = document.getElementById('qrTextInput');
+        textInput.value = '';
+        textInput.focus();
+        
+        // 重置預覽和按鈕狀態
+        this.clearPreview();
+        this.updateGenerateButton();
+        
+        console.log('顯示QR Code設定面板，準備建立於位置:', x, y);
+    }
+
+    // 隱藏所有QR Code控制項（新增方法）
+    hideAllControls() {
+        this.qrCodes.forEach(qr => {
+            this.hideQRControls(qr);
+        });
+        this.selectedQR = null;
     }
 } 

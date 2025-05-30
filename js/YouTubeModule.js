@@ -1,5 +1,9 @@
 class YouTubeModule {
-    constructor() {
+    constructor(canvasModule, backgroundModule, appInstance) {
+        this.canvasModule = canvasModule;
+        this.backgroundModule = backgroundModule;
+        this.app = appInstance;
+        this.canvas = this.canvasModule.getCanvasElement();
         this.isActive = false;
         this.youtubeVideos = []; // 儲存所有 YouTube 影片
         this.selectedVideo = null; // 當前選中的影片
@@ -305,8 +309,6 @@ class YouTubeModule {
     }
 
     showVideoControls(video) {
-        if (!this.isActive) return;
-        
         if (video.moveBtn) video.moveBtn.style.opacity = '1';
         if (video.deleteBtn) video.deleteBtn.style.opacity = '1';
         if (video.resizeHandle) video.resizeHandle.style.opacity = '1';
@@ -481,5 +483,34 @@ class YouTubeModule {
         // 縮放控制點位置（右下角）
         container.resizeHandle.style.left = (rect.right - 15) + 'px';
         container.resizeHandle.style.top = (rect.bottom - 15) + 'px';
+    }
+
+    // 直接建立YouTube影片（新增方法）
+    createVideoDirectly(x, y) {
+        // 彈出對話框讓使用者輸入 YouTube URL
+        const url = prompt('請輸入 YouTube 影片網址:');
+        if (!url) return;
+
+        // 解析 YouTube URL 獲取影片 ID
+        const videoId = this.extractVideoId(url);
+        if (!videoId) {
+            alert('無效的 YouTube 網址，請確認網址格式正確');
+            return;
+        }
+
+        // 建立影片容器
+        const videoContainer = this.createVideoContainer(videoId, x, y);
+        this.youtubeVideos.push(videoContainer);
+        
+        console.log(`直接建立 YouTube 影片: ${videoId} 於位置 (${x}, ${y})`);
+        return videoContainer;
+    }
+
+    // 隱藏所有YouTube影片控制項（新增方法）
+    hideAllControls() {
+        this.youtubeVideos.forEach(video => {
+            this.hideVideoControls(video);
+        });
+        this.selectedVideo = null;
     }
 } 

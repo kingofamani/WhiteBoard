@@ -462,7 +462,7 @@ class StopwatchModule {
     }
 
     showStopwatchControls(stopwatchContainer) {
-        if (!this.active || !stopwatchContainer.moveBtn) return;
+        if (!stopwatchContainer.moveBtn) return;
         
         stopwatchContainer.moveBtn.style.opacity = '1';
         stopwatchContainer.deleteBtn.style.opacity = '1';
@@ -582,5 +582,22 @@ class StopwatchModule {
             this.deleteStopwatch(stopwatch);
         });
         this.stopwatches = [];
+    }
+
+    // 直接建立碼錶（新增方法）
+    createStopwatchDirectly(x, y) {
+        // 直接建立碼錶
+        const stopwatchContainer = this.createStopwatch(x, y);
+        
+        console.log('直接建立碼錶於位置:', x, y);
+        return stopwatchContainer;
+    }
+
+    // 隱藏所有碼錶控制項（新增方法）
+    hideAllControls() {
+        this.stopwatches.forEach(stopwatch => {
+            this.hideStopwatchControls(stopwatch);
+        });
+        this.selectedStopwatch = null;
     }
 } 
