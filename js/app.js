@@ -9,6 +9,11 @@ let countdownModule;
 let stopwatchModule;
 let volumeDetectionModule;
 
+// 專案管理系統
+let projectManager;
+let saveLoadModule;
+let projectUI;
+
 // 全域選中元素追蹤
 let selectedElement = null;
 
@@ -47,6 +52,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 初始化音量偵測模組
     volumeDetectionModule = new VolumeDetectionModule();
+
+    // 初始化專案管理系統
+    projectManager = new ProjectManager();
+    saveLoadModule = new SaveLoadModule(
+        canvasModule, 
+        backgroundModule, 
+        textToolModule, 
+        notesModule, 
+        qrCodeModule, 
+        youtubeModule, 
+        imageModule, 
+        countdownModule, 
+        stopwatchModule
+    );
+    
+    // 建立專案UI（這會顯示啟動畫面）
+    projectUI = new ProjectUI(projectManager, saveLoadModule);
+    
+    // 將專案UI設為全域變數供HTML onclick使用
+    window.projectUI = projectUI;
 
     const canvas = canvasModule.getCanvasElement();
     const cursorTool = document.getElementById('cursorTool');

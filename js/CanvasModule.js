@@ -335,4 +335,26 @@ class CanvasModule {
         // ctx.globalCompositeOperation = oldCompositeOp;
         // console.log('Temporary direct draw complete.');
     }
+
+    /**
+     * 匯出繪圖歷史資料
+     * @returns {Array} 繪圖歷史陣列
+     */
+    exportData() {
+        return [...this.drawingHistory];
+    }
+
+    /**
+     * 匯入繪圖歷史資料
+     * @param {Array} data - 繪圖歷史陣列
+     */
+    importData(data) {
+        if (Array.isArray(data)) {
+            this.drawingHistory = [...data];
+            this.redrawAllContent();
+            console.log('Canvas 繪圖歷史載入完成');
+        } else {
+            console.warn('Canvas importData: 無效的資料格式');
+        }
+    }
 } 

@@ -176,4 +176,58 @@ class NotesModule extends BaseControlModule {
     set selectedNote(value) {
         this.selectedElement = value;
     }
+
+    /**
+     * 覆寫：匯出便條紙元素資料
+     * @param {HTMLElement} element - 便條紙元素
+     * @returns {Object} 便條紙資料
+     */
+    exportElementData(element) {
+        const baseData = super.exportElementData(element);
+        const textarea = element.querySelector('.note-text');
+        
+        return {
+            ...baseData,
+            text: textarea ? textarea.value : '',
+            backgroundColor: element.style.backgroundColor || '#ffeb3b',
+            fontSize: textarea ? parseInt(textarea.style.fontSize) || 12 : 12
+        };
+    }
+
+    /**
+     * 覆寫：匯入便條紙元素資料
+     * @param {Object} elementData - 便條紙資料
+     */
+    importElementData(elementData) {
+        const note = this.createNote(elementData.x, elementData.y);
+        
+        if (note && elementData) {
+            // 設定尺寸
+            if (elementData.width && elementData.height) {
+                note.style.width = elementData.width + 'px';
+                note.style.height = elementData.height + 'px';
+            }
+            
+            // 設定背景顏色
+            if (elementData.backgroundColor) {
+                note.style.backgroundColor = elementData.backgroundColor;
+            }
+            
+            // 設定文字內容和字體大小
+            const textarea = note.querySelector('.note-text');
+            if (textarea) {
+                if (elementData.text) {
+                    textarea.value = elementData.text;
+                }
+                if (elementData.fontSize) {
+                    textarea.style.fontSize = elementData.fontSize + 'px';
+                }
+            }
+            
+            // 設定 ID
+            if (elementData.id) {
+                note.id = elementData.id;
+            }
+        }
+    }
 } 

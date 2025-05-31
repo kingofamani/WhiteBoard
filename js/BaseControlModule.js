@@ -445,4 +445,72 @@ class BaseControlModule {
     onElementDeleted(element) {
         // 子類可覆寫此方法來處理刪除後的清理邏輯
     }
+
+    /**
+     * 匯出所有元素資料（基礎方法，子類應覆寫）
+     * @returns {Array} 元素資料陣列
+     */
+    exportData() {
+        return this.elements.map(element => this.exportElementData(element));
+    }
+
+    /**
+     * 匯出單個元素資料（子類應覆寫）
+     * @param {HTMLElement} element - 元素
+     * @returns {Object} 元素資料
+     */
+    exportElementData(element) {
+        const rect = element.getBoundingClientRect();
+        const canvasRect = this.canvas.getBoundingClientRect();
+        
+        return {
+            id: element.id,
+            x: rect.left - canvasRect.left,
+            y: rect.top - canvasRect.top,
+            width: rect.width,
+            height: rect.height,
+            timestamp: Date.now()
+        };
+    }
+
+    /**
+     * 匯入所有元素資料（基礎方法，子類應覆寫）
+     * @param {Array} data - 元素資料陣列
+     */
+    importData(data) {
+        if (!Array.isArray(data)) {
+            console.warn(`${this.config.toolName} importData: 無效的資料格式`);
+            return;
+        }
+
+        // 清空現有元素
+        this.clearAll();
+
+        // 重建元素
+        data.forEach(elementData => {
+            this.importElementData(elementData);
+        });
+
+        console.log(`${this.config.toolName} 資料載入完成:`, data.length, '個元素');
+    }
+
+    /**
+     * 匯入單個元素資料（子類應覆寫）
+     * @param {Object} elementData - 元素資料
+     */
+    importElementData(elementData) {
+        // 基礎實現：僅建立空元素
+        const element = this.createElement(elementData.x, elementData.y);
+        if (element && elementData.width && elementData.height) {
+            element.style.width = elementData.width + 'px';
+            element.style.height = elementData.height + 'px';
+        }
+    }
+
+    /**
+     * 清空所有元素（別名方法）
+     */
+    clearAll() {
+        this.clearAllElements();
+    }
 } 

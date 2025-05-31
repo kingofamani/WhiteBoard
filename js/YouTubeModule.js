@@ -208,4 +208,36 @@ class YouTubeModule extends BaseControlModule {
     set isActive(value) {
         this.active = value;
     }
+
+    /**
+     * 覆寫：匯出 YouTube 影片資料
+     */
+    exportElementData(element) {
+        const baseData = super.exportElementData(element);
+        const iframe = element.querySelector('iframe');
+        
+        return {
+            ...baseData,
+            videoId: element.videoId || '',
+            src: iframe ? iframe.src : ''
+        };
+    }
+
+    /**
+     * 覆寫：匯入 YouTube 影片資料
+     */
+    importElementData(elementData) {
+        if (elementData.videoId) {
+            const video = this.createVideoContainer(elementData.videoId, elementData.x, elementData.y);
+            
+            if (video && elementData.width && elementData.height) {
+                video.style.width = elementData.width + 'px';
+                video.style.height = elementData.height + 'px';
+            }
+            
+            if (elementData.id) {
+                video.id = elementData.id;
+            }
+        }
+    }
 } 

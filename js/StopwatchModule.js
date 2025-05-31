@@ -313,4 +313,49 @@ class StopwatchModule extends BaseControlModule {
     set selectedStopwatch(value) {
         this.selectedElement = value;
     }
+
+    /**
+     * 覆寫：匯出碼錶資料
+     */
+    exportElementData(element) {
+        const baseData = super.exportElementData(element);
+        const data = element.timerData;
+        
+        return {
+            ...baseData,
+            elapsedTime: data ? data.elapsedTime : 0,
+            isRunning: data ? data.isRunning : false
+        };
+    }
+
+    /**
+     * 覆寫：匯入碼錶資料
+     */
+    importElementData(elementData) {
+        const stopwatch = this.createStopwatch(elementData.x, elementData.y);
+        
+        if (stopwatch && elementData) {
+            // 設定尺寸
+            if (elementData.width && elementData.height) {
+                stopwatch.style.width = elementData.width + 'px';
+                stopwatch.style.height = elementData.height + 'px';
+                
+                // 調整字體大小
+                const timeDisplay = stopwatch.querySelector('.time-display');
+                const scaleFactor = elementData.width / this.config.defaultWidth;
+                timeDisplay.style.fontSize = (32 * scaleFactor) + 'px';
+            }
+            
+            // 設定時間
+            if (elementData.elapsedTime !== undefined && stopwatch.timerData) {
+                stopwatch.timerData.elapsedTime = elementData.elapsedTime;
+                this.updateTimeDisplay(stopwatch);
+            }
+            
+            // 設定 ID
+            if (elementData.id) {
+                stopwatch.id = elementData.id;
+            }
+        }
+    }
 } 

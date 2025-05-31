@@ -254,4 +254,42 @@ class ImageModule extends BaseControlModule {
     set isActive(value) {
         this.active = value;
     }
+
+    /**
+     * 覆寫：匯出圖片資料
+     */
+    exportElementData(element) {
+        const baseData = super.exportElementData(element);
+        const img = element.querySelector('img');
+        
+        return {
+            ...baseData,
+            src: element.imageSrc || (img ? img.src : ''),
+            name: element.imageName || '圖片',
+            data: img ? img.src : '' // Base64 或 URL
+        };
+    }
+
+    /**
+     * 覆寫：匯入圖片資料
+     */
+    importElementData(elementData) {
+        if (elementData.src || elementData.data) {
+            const image = this.createImageContainer(
+                elementData.src || elementData.data, 
+                elementData.x, 
+                elementData.y, 
+                elementData.name || '圖片'
+            );
+            
+            if (image && elementData.width && elementData.height) {
+                image.style.width = elementData.width + 'px';
+                image.style.height = elementData.height + 'px';
+            }
+            
+            if (elementData.id) {
+                image.id = elementData.id;
+            }
+        }
+    }
 } 

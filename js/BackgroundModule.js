@@ -74,4 +74,30 @@ class BackgroundModule {
         }
         this.context.restore(); // 恢復之前保存的繪圖狀態 (尤其是 globalCompositeOperation)
     }
+
+    /**
+     * 匯出背景設定資料
+     * @returns {Object} 背景設定物件
+     */
+    exportData() {
+        return {
+            type: this.currentBackgroundType,
+            customColor: this.customColor
+        };
+    }
+
+    /**
+     * 匯入背景設定資料
+     * @param {Object} data - 背景設定物件
+     */
+    importData(data) {
+        if (data && typeof data === 'object') {
+            this.currentBackgroundType = data.type || 'white';
+            this.customColor = data.customColor || '#ffffff';
+            this.drawBackground();
+            console.log('Background 設定載入完成');
+        } else {
+            console.warn('Background importData: 無效的資料格式');
+        }
+    }
 } 

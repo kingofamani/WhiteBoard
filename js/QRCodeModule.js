@@ -741,4 +741,115 @@ class QRCodeModule {
         });
         this.selectedQR = null;
     }
+
+    /**
+     * 匯出所有 QR Code 資料
+     * @returns {Array} QR Code 資料陣列
+     */
+    exportData() {
+        return this.qrCodes.map(qr => {
+            const rect = qr.getBoundingClientRect();
+            const canvasRect = this.canvas.getBoundingClientRect();
+            const img = qr.querySelector('img');
+            
+            return {
+                id: qr.id,
+                x: rect.left - canvasRect.left,
+                y: rect.top - canvasRect.top,
+                width: rect.width,
+                height: rect.height,
+                text: qr.dataset.qrText || '',
+                dataURL: img ? img.src : '',
+                timestamp: Date.now()
+            };
+        });
+    }
+
+    /**
+     * 匯入 QR Code 資料
+     * @param {Array} data - QR Code 資料陣列
+     */
+    importData(data) {
+        if (!Array.isArray(data)) {
+            console.warn('QRCode importData: 無效的資料格式');
+            return;
+        }
+
+        // 清空現有 QR Code
+        this.clearAll();
+
+        // 重建 QR Code
+        data.forEach(qrData => {
+            this.importQRData(qrData);
+        });
+
+        console.log('QR Code 資料載入完成:', data.length, '個 QR Code');
+    }
+
+    /**
+     * 匯入單個 QR Code 資料
+     * @param {Object} qrData - QR Code 資料
+     */
+    importQRData(qrData) {
+        if (!qrData.x || !qrData.y || !qrData.text) {
+            console.warn('QRCode importQRData: 缺少必要資料');
+            return;
+        }
+
+        // 直接建立 QR Code DOM 元素（不透過面板）
+        const qrId = qrData.id || `qr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const qrContainer = document.createElement('div');
+        qrContainer.id = qrId;
+        qrContainer.className = 'qr-container';
+        qrContainer.dataset.qrText = qrData.text;
+        
+        qrContainer.style.cssText = `
+            position: absolute;
+            left: ${qrData.x}px;
+            top: ${qrData.y}px;
+            width: ${qrData.width || 150}px;
+            height: ${qrData.height || 150}px;
+            cursor: pointer;
+            user-select: none;
+            z-index: 40;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        `;
+
+        // 建立圖片元素
+        const img = document.createElement('img');
+        img.style.cssText = `
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: white;
+            border-radius: 2px;
+        `;
+        
+        if (qrData.dataURL) {
+            img.src = qrData.dataURL;
+        } else {
+            // 重新生成 QR Code
+            img.src = this.generateQRCodeURL(qrData.text, Math.min(qrData.width, qrData.height) || 150);
+        }
+
+        qrContainer.appendChild(img);
+
+        // 建立控制項
+        this.createQRControls(qrContainer);
+
+        // 添加到陣列和頁面
+        this.qrCodes.push(qrContainer);
+        document.body.appendChild(qrContainer);
+
+        console.log('QR Code 已匯入:', qrId);
+    }
+
+    /**
+     * 清空所有 QR Code（別名方法）
+     */
+    clearAll() {
+        this.clearAllQRCodes();
+    }
 } 

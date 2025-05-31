@@ -540,4 +540,58 @@ class CountdownModule extends BaseControlModule {
     set selectedCountdown(value) {
         this.selectedElement = value;
     }
+
+    /**
+     * 覆寫：匯出倒數計時器資料
+     */
+    exportElementData(element) {
+        const baseData = super.exportElementData(element);
+        const minutesInput = element.querySelector('.minutes-input');
+        const secondsInput = element.querySelector('.seconds-input');
+        
+        return {
+            ...baseData,
+            minutes: minutesInput ? parseInt(minutesInput.value) || 0 : 5,
+            seconds: secondsInput ? parseInt(secondsInput.value) || 0 : 0,
+            isRunning: element.isRunning || false,
+            remainingTime: element.remainingTime || 0
+        };
+    }
+
+    /**
+     * 覆寫：匯入倒數計時器資料
+     */
+    importElementData(elementData) {
+        const countdown = this.createCountdown(elementData.x, elementData.y);
+        
+        if (countdown && elementData) {
+            // 設定尺寸
+            if (elementData.width && elementData.height) {
+                countdown.style.width = elementData.width + 'px';
+                countdown.style.height = elementData.height + 'px';
+            }
+            
+            // 設定時間
+            const minutesInput = countdown.querySelector('.minutes-input');
+            const secondsInput = countdown.querySelector('.seconds-input');
+            
+            if (minutesInput && elementData.minutes !== undefined) {
+                minutesInput.value = elementData.minutes;
+            }
+            if (secondsInput && elementData.seconds !== undefined) {
+                secondsInput.value = elementData.seconds;
+            }
+            
+            // 設定 ID
+            if (elementData.id) {
+                countdown.id = elementData.id;
+            }
+            
+            // 如果有剩餘時間，設定為暫停狀態
+            if (elementData.remainingTime > 0) {
+                countdown.remainingTime = elementData.remainingTime;
+                this.updateTimeDisplay(countdown);
+            }
+        }
+    }
 } 
