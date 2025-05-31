@@ -26,7 +26,7 @@
 │  • 綁定工具列事件                                            │
 │  • 協調模組間通訊                                            │
 │  • 管理工具切換狀態                                          │
-│  • 專案管理整合 (新增中)                                     │
+│  • 專案管理整合 (計畫中)                                     │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -45,48 +45,62 @@
 │  └─────────────────┘  └─────────────────┘                  │
 │                                                             │
 │  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │ TextToolModule  │  │  NotesModule    │                  │
-│  │   (文字工具)     │  │   (便條紙)       │                  │
+│  │ TextToolModule  │  │BaseControlModule│                  │
+│  │   (文字工具)     │  │ (統一控制基類)   │ ⭐               │
 │  │                 │  │                 │                  │
-│  │ • 文字輸入面板   │  │ • 便條紙新增     │                  │
-│  │ • 畫布點擊處理   │  │ • 文字編輯功能   │                  │
-│  │ • 文字樣式設定   │  │ • 拖拽移動系統   │                  │
-│  │ • 文字重繪邏輯   │  │ • 便條紙重繪     │                  │
-│  └─────────────────┘  └─────────────────┘                  │
-│                                                             │
-│  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │ QRCodeModule    │  │ YouTubeModule   │                  │
-│  │ (QR code產生器)  │  │ (YouTube嵌入)   │                  │
-│  │                 │  │                 │                  │
-│  │ • QR輸入面板     │  │ • 影片URL解析    │                  │
-│  │ • QR code生成    │  │ • iframe嵌入     │                  │
-│  │ • 畫布放置功能   │  │ • 拖拽縮放控制   │                  │
-│  │ • QR重繪機制     │  │ • 影片管理      │                  │
-│  └─────────────────┘  └─────────────────┘                  │
-│                                                             │
-│  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │  ImageModule    │  │CountdownModule  │                  │
-│  │   (圖片插入)     │  │ (倒數計時器)     │                  │
-│  │                 │  │                 │                  │
-│  │ • 圖片上傳處理   │  │ • DOM計時器元素  │                  │
-│  │ • 圖片拖拽縮放   │  │ • 時間調整控制   │                  │
-│  │ • 圖片管理系統   │  │ • 聲音警報系統   │                  │
-│  │ • 多格式支援     │  │ • 視覺效果提醒   │                  │
-│  └─────────────────┘  └─────────────────┘                  │
-│                                                             │
-│  ┌─────────────────┐  ┌─────────────────┐                  │
-│  │ StopwatchModule │  │VolumeDetection  │                  │
-│  │    (碼錶)       │  │Module (音量偵測) │                  │
-│  │                 │  │                 │                  │
-│  │ • DOM碼錶元素    │  │ • 麥克風權限管理 │                  │
-│  │ • 百分秒精度     │  │ • 即時音量分析   │                  │
-│  │ • 播放控制介面   │  │ • 警告系統      │                  │
-│  │ • 橫向佈局設計   │  │ • Toast通知     │                  │
+│  │ • 文字輸入面板   │  │ • 3按鈕控制系統  │                  │
+│  │ • 畫布點擊處理   │  │ • 統一事件處理   │                  │
+│  │ • 文字樣式設定   │  │ • 元素生命週期   │                  │
+│  │ • 文字重繪邏輯   │  │ • 拖拽縮放邏輯   │                  │
 │  └─────────────────┘  └─────────────────┘                  │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
-│                    專案管理系統 (開發中)                      │
+│                  繼承 BaseControlModule 的模組               │
+│                                                             │
+│  ┌─────────────────┐  ┌─────────────────┐                  │
+│  │  NotesModule    │  │ QRCodeModule    │                  │
+│  │ (便條紙) [繼承]  │  │(QR code產生器)  │                  │
+│  │                 │  │                 │                  │
+│  │ • 便條紙新增     │  │ • QR輸入面板     │                  │
+│  │ • 文字編輯功能   │  │ • QR code生成    │                  │
+│  │ • 統一3按鈕控制  │  │ • 畫布放置功能   │                  │
+│  │ • 自動縮放字體   │  │ • QR重繪機制     │                  │
+│  └─────────────────┘  └─────────────────┘                  │
+│                                                             │
+│  ┌─────────────────┐  ┌─────────────────┐                  │
+│  │ YouTubeModule   │  │  ImageModule    │                  │
+│  │(YouTube嵌入)[繼承]│  │ (圖片插入)[繼承] │                  │
+│  │                 │  │                 │                  │
+│  │ • 影片URL解析    │  │ • 圖片上傳處理   │                  │
+│  │ • iframe嵌入     │  │ • 統一3按鈕控制  │                  │
+│  │ • 16:9比例縮放   │  │ • 多格式支援     │                  │
+│  │ • 統一3按鈕控制  │  │ • 自由縮放功能   │                  │
+│  └─────────────────┘  └─────────────────┘                  │
+│                                                             │
+│  ┌─────────────────┐  ┌─────────────────┐                  │
+│  │CountdownModule  │  │ StopwatchModule │                  │
+│  │(倒數計時器)[繼承] │  │  (碼錶)[繼承]    │                  │
+│  │                 │  │                 │                  │
+│  │ • DOM計時器元素  │  │ • DOM碼錶元素    │                  │
+│  │ • 聲音警報系統   │  │ • 百分秒精度     │                  │
+│  │ • 統一3按鈕控制  │  │ • 統一3按鈕控制  │                  │
+│  │ • 保持比例縮放   │  │ • 保持比例縮放   │                  │
+│  └─────────────────┘  └─────────────────┘                  │
+│                                                             │
+│  ┌─────────────────┐                                       │
+│  │VolumeDetection  │                                       │
+│  │Module (音量偵測) │                                       │
+│  │                 │                                       │
+│  │ • 麥克風權限管理 │                                       │
+│  │ • 即時音量分析   │                                       │
+│  │ • 警告系統      │                                       │
+│  │ • Toast通知     │                                       │
+│  └─────────────────┘                                       │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                    專案管理系統 (計畫中)                      │
 │                                                             │
 │  ┌─────────────────┐  ┌─────────────────┐                  │
 │  │ ProjectManager  │  │ SaveLoadModule  │                  │
@@ -157,7 +171,47 @@ drawingHistory = [
 - `grid`: 格線背景 (SVG pattern)
 - `customColor`: 自訂顏色背景
 
-### 3. TextToolModule (文字工具模組)
+### 3. BaseControlModule (統一控制基類) ⭐
+**職責**: 提供所有可放置內容的統一控制邏輯
+
+**核心功能**:
+- **統一3按鈕控制系統**:
+  - 移動按鈕 (綠色手掌圖示，左上角)
+  - 刪除按鈕 (紅色垃圾桶圖示，右上角)
+  - 縮放按鈕 (藍色箭頭圖示，右下角)
+
+**主要方法**:
+- `activate()`: 啟用工具模式
+- `deactivate()`: 停用工具並隱藏所有控制項
+- `createElement(x, y)`: 抽象方法，子類實現具體元素創建
+- `createElementControls(container)`: 建立統一的3按鈕控制項
+- `selectElement(container)`: 選中元素並顯示控制項
+- `updateControlPositions(container)`: 更新控制項位置
+- `handleResize(e)`: 處理元素縮放邏輯
+- `deleteElement(container)`: 刪除元素和清理資源
+
+**事件處理**:
+- 容器點擊事件: 只在 cursor 工具模式下響應
+- 拖拽移動: 透過移動按鈕或直接拖拽容器
+- 縮放調整: 透過縮放控制點
+- 鍵盤刪除: Delete 鍵刪除選中元素
+
+**配置選項**:
+```javascript
+config = {
+  defaultWidth: 200,       // 預設寬度
+  defaultHeight: 150,      // 預設高度
+  minWidth: 100,          // 最小寬度
+  minHeight: 100,         // 最小高度
+  moveButtonColor: '#10b981',    // 移動按鈕顏色
+  deleteButtonColor: '#ef4444',  // 刪除按鈕顏色
+  resizeButtonColor: '#3b82f6',  // 縮放按鈕顏色
+  borderColor: '#10b981',        // 邊框顏色
+  toolName: 'Element'            // 工具名稱
+}
+```
+
+### 4. TextToolModule (文字工具模組)
 **職責**: 處理文字新增和編輯功能
 
 **主要方法**:
@@ -173,20 +227,20 @@ drawingHistory = [
 - 支援 Enter 鍵確認輸入
 - 文字內容保存到繪圖歷史
 
-### 4. NotesModule (便條紙模組)
+### 5. NotesModule (便條紙模組) [繼承 BaseControlModule]
 **職責**: 管理便條紙的新增、編輯和移動
 
 **主要方法**:
-- `activate()`: 啟用便條紙工具
-- `deactivate()`: 停用便條紙工具
-- `handleCanvasMouseDown(e)`: 處理滑鼠按下事件
-- `handleCanvasMouseMove(e)`: 處理滑鼠移動 (拖拽)
-- `handleCanvasMouseUp(e)`: 處理滑鼠放開事件
-- `addNote(x, y)`: 新增便條紙
-- `editNote(note)`: 編輯便條紙內容
-- `clearAllNotes()`: 清空所有便條紙
-- `exportData()`: 匯出便條紙資料 (開發中)
-- `importData(data)`: 匯入便條紙資料 (開發中)
+- `createElement(x, y)`: 實現基類要求的元素創建
+- `createNote(x, y)`: 建立便條紙
+- `handleResize(e)`: 覆寫縮放處理，支援字體自動調整
+
+**功能特色**:
+- 統一3按鈕控制體驗
+- 點擊內容區域顯示控制項
+- 文字區域自動聚焦編輯
+- 縮放時字體大小自動調整
+- 空白內容自動刪除
 
 **資料結構**:
 ```javascript
@@ -194,134 +248,115 @@ notes = [
   {
     id: 1,
     x: 100, y: 100,
-    width: 200, height: 150,
+    width: 120, height: 80,
     text: '便條內容',
-    color: '#ffeb3b',
-    textColor: '#000000',
-    fontSize: 14,
-    fontFamily: 'Arial'
+    color: '#ffeb3b'
   }
 ]
 ```
 
-### 5. QRCodeModule (QR Code 產生器模組)
-**職責**: 處理 QR code 的生成和畫布放置
+### 6. QRCodeModule (QR Code 產生器模組)
+**職責**: 生成和管理 QR Code
 
 **主要方法**:
-- `activate()`: 啟用 QR code 工具
-- `deactivate()`: 停用 QR code 工具
-- `createQRPanel()`: 建立 QR code 輸入面板
-- `generateQRCode()`: 生成 QR code
-- `handleCanvasClick(e)`: 處理畫布點擊放置
-- `addQRCodeToCanvas(dataURL, x, y)`: 新增 QR code 到畫布
-- `clearAllQRCodes()`: 清空所有 QR codes
-- `exportData()`: 匯出 QR code 資料 (開發中)
-- `importData(data)`: 匯入 QR code 資料 (開發中)
+- `activate()`: 顯示 QR 設定面板
+- `deactivate()`: 隱藏面板並清理狀態
+- `createQRCodeOnCanvas(x, y, text, size)`: 建立 QR Code
+- `generateQRCodeURL(text, size)`: 生成 QR Code API URL
 
 **功能特色**:
-- 使用 qr-server.com API 生成 QR code
-- 支援文字和網址輸入
-- 可調整 QR code 大小
-- QR code 內容保存到繪圖歷史
+- 真實 QR Code 生成 (qr-server.com API)
+- 輸入面板即時預覽
+- 可調整大小 (100-300px)
+- 支援文字、網址、電話號碼
+- 錯誤處理和備用方案
+- 與 BaseControlModule 獨立運作 (保持原有邏輯)
 
-### 6. YouTubeModule (YouTube 影片嵌入模組)
-**職責**: 處理 YouTube 影片嵌入和管理
+### 7. YouTubeModule (YouTube 影片嵌入模組) [繼承 BaseControlModule]
+**職責**: 處理 YouTube 影片的嵌入和管理
 
 **主要方法**:
-- `activate()`: 啟用 YouTube 工具
-- `deactivate()`: 停用 YouTube 工具
-- `createVideo(url, x, y)`: 建立影片元素
-- `bindVideoEvents(videoContainer)`: 綁定影片控制事件
-- `selectVideo(videoContainer)`: 選中影片
-- `deleteVideo(videoContainer)`: 刪除影片
-- `clearAllVideos()`: 清空所有影片
-- `exportData()`: 匯出影片資料 (開發中)
-- `importData(data)`: 匯入影片資料 (開發中)
+- `createElement(x, y)`: 實現基類要求的元素創建
+- `extractVideoId(url)`: 解析 YouTube URL 獲取影片 ID
+- `createVideoContainer(videoId, x, y)`: 建立影片容器
+- `handleResize(e)`: 覆寫縮放處理，保持 16:9 比例
 
 **功能特色**:
+- 統一3按鈕控制體驗
 - 支援多種 YouTube URL 格式
-- 影片拖拽移動和縮放調整
-- 影片選中狀態和控制項管理
-- 與其他工具的整合切換
+- 自動保持 16:9 比例縮放
+- iframe 嵌入支援全螢幕播放
 
-### 7. ImageModule (圖片插入模組)
-**職責**: 處理圖片上傳、顯示和管理
-
-**主要方法**:
-- `activate()`: 啟用圖片工具
-- `deactivate()`: 停用圖片工具
-- `createImage(file, x, y)`: 建立圖片元素
-- `bindImageEvents(imageContainer)`: 綁定圖片控制事件
-- `selectImage(imageContainer)`: 選中圖片
-- `deleteImage(imageContainer)`: 刪除圖片
-- `clearAllImages()`: 清空所有圖片
-- `exportData()`: 匯出圖片資料 (開發中)
-- `importData(data)`: 匯入圖片資料 (開發中)
-
-**功能特色**:
-- 支援多種圖片格式 (JPG, PNG, GIF, WebP)
-- 圖片拖拽移動和縮放調整
-- 圖片選中狀態和控制項管理
-- Base64 編碼儲存支援
-
-### 8. CountdownModule (倒數計時器模組)
-**職責**: 提供 DOM 基礎的倒數計時器功能
+### 8. ImageModule (圖片插入模組) [繼承 BaseControlModule]
+**職責**: 處理圖片的上傳、顯示和管理
 
 **主要方法**:
-- `activate()`: 啟用倒數計時器工具
-- `deactivate()`: 停用倒數計時器工具
-- `createCountdown(x, y)`: 建立倒數計時器元素
-- `startCountdown(countdownContainer)`: 開始倒數
-- `pauseCountdown(countdownContainer)`: 暫停倒數
-- `resetCountdown(countdownContainer)`: 重置倒數
-- `clearAllCountdowns()`: 清空所有計時器
-- `exportData()`: 匯出計時器資料 (開發中)
-- `importData(data)`: 匯入計時器資料 (開發中)
+- `createElement(x, y)`: 實現基類要求的元素創建
+- `uploadImageFile(x, y)`: 處理圖片檔案上傳
+- `inputImageURL(x, y)`: 處理圖片 URL 輸入
+- `createImageContainer(src, x, y, name)`: 建立圖片容器
 
 **功能特色**:
-- DOM 元素計時器（280x120px）
-- 分鐘/秒數調整按鈕
-- 聲音警報和 Toast 通知
-- 視覺效果提醒（閃爍、變色）
-- 可拖拽、縮放、刪除
+- 統一3按鈕控制體驗
+- 支援檔案上傳和 URL 輸入
+- 多格式支援 (JPG, PNG, GIF, WebP, SVG)
+- Base64 編碼儲存
+- 載入錯誤處理和佔位符
 
-### 9. StopwatchModule (碼錶模組)
-**職責**: 提供 DOM 基礎的碼錶功能
+### 9. CountdownModule (倒數計時器模組) [繼承 BaseControlModule]
+**職責**: 管理倒數計時器功能
 
 **主要方法**:
-- `activate()`: 啟用碼錶工具
-- `deactivate()`: 停用碼錶工具
-- `createStopwatch(x, y)`: 建立碼錶元素
-- `startStopwatch(stopwatchContainer)`: 開始計時
-- `pauseStopwatch(stopwatchContainer)`: 暫停計時
-- `resetStopwatch(stopwatchContainer)`: 重置計時
-- `clearAllStopwatches()`: 清空所有碼錶
-- `exportData()`: 匯出碼錶資料 (開發中)
-- `importData(data)`: 匯入碼錶資料 (開發中)
+- `createElement(x, y)`: 實現基類要求的元素創建
+- `createCountdown(x, y)`: 建立倒數計時器
+- `startCountdown()`: 開始倒數
+- `onCountdownFinished()`: 計時結束處理
+- `handleResize(e)`: 覆寫縮放處理，保持比例
 
 **功能特色**:
-- DOM 元素碼錶（320x100px）
-- 百分秒精度（10ms 更新）
+- 統一3按鈕控制體驗
+- 可調整分鐘/秒數設定
+- 計時結束聲音警報
+- Toast 通知和閃爍提醒
+- Web Audio API 生成警報聲
+
+### 10. StopwatchModule (碼錶模組) [繼承 BaseControlModule]
+**職責**: 管理碼錶計時功能
+
+**主要方法**:
+- `createElement(x, y)`: 實現基類要求的元素創建
+- `createStopwatch(x, y)`: 建立碼錶
+- `startStopwatch()`: 開始計時
+- `pauseStopwatch()`: 暫停計時
+- `resetStopwatch()`: 重置計時
+- `handleResize(e)`: 覆寫縮放處理，保持比例
+
+**功能特色**:
+- 統一3按鈕控制體驗
+- 百分秒精度 (10ms 更新)
 - 橫向佈局設計
 - 播放/暫停/重置控制
-- 可拖拽、縮放、刪除
+- 字體隨縮放調整
 
-### 10. VolumeDetectionModule (音量偵測模組)
-**職責**: 音量偵測和警告系統
+### 11. VolumeDetectionModule (音量偵測模組)
+**職責**: 監控麥克風音量並提供警告功能
 
-**主要功能**:
-- 麥克風權限管理和控制
-- 即時音量分析（Web Audio API）
-- 音量視覺化（動態音量條）
-- 閾值設定和指示線
-- 音量超標警告系統
-- 警告計數器和動畫效果
-- Toast 通知系統
-- 音量平滑處理和冷卻機制
+**主要方法**:
+- `startVolumeDetection()`: 開始音量監控
+- `stopVolumeDetection()`: 停止音量監控
+- `analyzeVolume()`: 分析音量資料
+- `showWarningToast(message)`: 顯示警告 Toast
+
+**功能特色**:
+- 麥克風權限管理
+- 即時音量視覺化
+- 可調整閾值設定
+- 警告計數和動畫
+- 冷卻機制防止重複警告
 
 ## 專案管理系統 (開發中)
 
-### 11. ProjectManager (專案管理器)
+### 12. ProjectManager (專案管理器)
 **職責**: 統一管理專案的 CRUD 操作
 
 **主要方法** (計畫中):
@@ -334,7 +369,7 @@ notes = [
 - `renameProject(projectId, newName)`: 重新命名
 - `generateThumbnail()`: 產生縮圖
 
-### 12. SaveLoadModule (儲存載入模組)
+### 13. SaveLoadModule (儲存載入模組)
 **職責**: 協調各模組進行資料匯出和匯入
 
 **主要方法** (計畫中):
@@ -344,7 +379,7 @@ notes = [
 - `compressData(data)`: 資料壓縮
 - `validateData(data)`: 資料驗證
 
-### 13. ProjectUI (專案介面模組)
+### 14. ProjectUI (專案介面模組)
 **職責**: 管理專案相關的使用者介面
 
 **主要方法** (計畫中):
