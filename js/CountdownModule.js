@@ -1,30 +1,23 @@
-class CountdownModule {
+// 倒數計時器模組 - 繼承自 BaseControlModule
+class CountdownModule extends BaseControlModule {
     constructor(canvasModule, backgroundModule, appInstance) {
-        this.canvasModule = canvasModule;
-        this.backgroundModule = backgroundModule;
-        this.app = appInstance;
-        this.canvas = this.canvasModule.getCanvasElement();
-        this.active = false;
-        this.countdowns = []; // 儲存所有倒數計時器DOM元素
-        this.nextId = 1; // 倒數計時器 ID 計數器
-        this.selectedCountdown = null; // 當前選中的倒數計時器
-        this.isDragging = false;
-        this.isResizing = false;
-        this.dragOffset = { x: 0, y: 0 };
-        this.resizeHandle = null;
-
-        // 預設設定
-        this.defaultWidth = 280;
-        this.defaultHeight = 120;
-        this.minWidth = 200;
-        this.minHeight = 80;
-
+        // 配置選項
+        const config = {
+            defaultWidth: 280,
+            defaultHeight: 120,
+            minWidth: 200,
+            minHeight: 80,
+            moveButtonColor: '#e53e3e',
+            deleteButtonColor: '#ef4444',
+            resizeButtonColor: '#3b82f6',
+            borderColor: '#e53e3e',
+            toolName: '倒數計時器'
+        };
+        
+        super(canvasModule, backgroundModule, appInstance, config);
+        
         // 創建音效
         this.createAlarmSound();
-
-        // 綁定事件處理函數
-        this.handleCanvasClick = this.handleCanvasClick.bind(this);
-        this.bindEvents();
     }
 
     createAlarmSound() {
@@ -138,67 +131,9 @@ class CountdownModule {
         return toast;
     }
 
-    bindEvents() {
-        // 監聽畫布點擊事件
-        document.addEventListener('click', (e) => {
-            if (this.active && (e.target.id === 'whiteboard' || e.target.id === 'testArea')) {
-                this.handleCanvasClick(e);
-            }
-        });
-
-        // 監聽鍵盤事件
-        document.addEventListener('keydown', (e) => {
-            if (this.active && e.key === 'Delete' && this.selectedCountdown) {
-                this.deleteSelectedCountdown();
-            }
-        });
-
-        // 監聽滑鼠事件
-        document.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        document.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        document.addEventListener('mouseup', this.handleMouseUp.bind(this));
-    }
-
-    activate() {
-        this.active = true;
-        this.canvas.style.cursor = 'crosshair';
-        console.log('Countdown tool activated');
-        
-        // 顯示所有倒數計時器的控制項
-        this.countdowns.forEach(countdown => {
-            this.updateControlPositions(countdown);
-            this.showCountdownControls(countdown);
-        });
-    }
-
-    deactivate() {
-        this.active = false;
-        this.canvas.style.cursor = 'default';
-        this.selectedCountdown = null;
-        this.isDragging = false;
-        this.isResizing = false;
-        console.log('Countdown tool deactivated');
-        
-        // 隱藏所有控制項
-        this.countdowns.forEach(countdown => {
-            this.hideCountdownControls(countdown);
-        });
-    }
-
-    handleCanvasClick(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        // 檢查是否點擊在現有倒數計時器上
-        const clickedCountdown = this.getCountdownAtPosition(x, y);
-        
-        if (clickedCountdown) {
-            this.selectCountdown(clickedCountdown);
-        } else {
-            // 點擊空白區域，新增倒數計時器
-            this.createCountdown(x, y);
-        }
+    // 實現基礎類別要求的 createElement 方法
+    createElement(x, y) {
+        return this.createCountdown(x, y);
     }
 
     createCountdown(x, y) {
@@ -210,14 +145,14 @@ class CountdownModule {
         countdownContainer.className = 'countdown-container';
         countdownContainer.style.cssText = `
             position: absolute;
-            left: ${x - this.defaultWidth / 2}px;
-            top: ${y - this.defaultHeight / 2}px;
-            width: ${this.defaultWidth}px;
-            height: ${this.defaultHeight}px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: 3px solid #5a67d8;
-            border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            left: ${x - this.config.defaultWidth / 2}px;
+            top: ${y - this.config.defaultHeight / 2}px;
+            width: ${this.config.defaultWidth}px;
+            height: ${this.config.defaultHeight}px;
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            border: 3px solid ${this.config.borderColor};
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
             cursor: move;
             user-select: none;
             z-index: 50;
@@ -226,185 +161,92 @@ class CountdownModule {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 12px;
             color: white;
         `;
+
+        // 建立時間設定區域
+        const timeSettingArea = document.createElement('div');
+        timeSettingArea.className = 'time-setting-area';
+        timeSettingArea.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        `;
+
+        // 建立時間輸入欄位
+        const minutesInput = document.createElement('input');
+        minutesInput.type = 'number';
+        minutesInput.min = '0';
+        minutesInput.max = '59';
+        minutesInput.value = '5';
+        minutesInput.className = 'minutes-input';
+        minutesInput.style.cssText = `
+            width: 45px;
+            padding: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-align: center;
+            font-size: 14px;
+        `;
+
+        const secondsInput = document.createElement('input');
+        secondsInput.type = 'number';
+        secondsInput.min = '0';
+        secondsInput.max = '59';
+        secondsInput.value = '0';
+        secondsInput.className = 'seconds-input';
+        secondsInput.style.cssText = minutesInput.style.cssText;
+
+        timeSettingArea.innerHTML = '設定時間: ';
+        timeSettingArea.appendChild(minutesInput);
+        timeSettingArea.appendChild(document.createTextNode(' 分 '));
+        timeSettingArea.appendChild(secondsInput);
+        timeSettingArea.appendChild(document.createTextNode(' 秒'));
 
         // 建立時間顯示區域
         const timeDisplay = document.createElement('div');
         timeDisplay.className = 'time-display';
         timeDisplay.style.cssText = `
-            font-size: 36px;
+            font-size: 28px;
             font-weight: bold;
             text-align: center;
-            margin-bottom: 8px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            min-height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            margin-bottom: 8px;
             font-family: 'Courier New', monospace;
         `;
-        timeDisplay.textContent = '10:00';
+        timeDisplay.textContent = '05:00';
 
         // 建立控制按鈕區域
         const controlArea = document.createElement('div');
         controlArea.className = 'control-area';
         controlArea.style.cssText = `
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 8px;
-            width: 100%;
-        `;
-
-        // 時間調整區域
-        const timeAdjustArea = document.createElement('div');
-        timeAdjustArea.className = 'time-adjust-area';
-        timeAdjustArea.style.cssText = `
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            width: 100%;
-        `;
-
-        // 分鐘調整區域
-        const minuteArea = document.createElement('div');
-        minuteArea.className = 'minute-area';
-        minuteArea.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        `;
-
-        const minuteLabel = document.createElement('div');
-        minuteLabel.textContent = '分鐘';
-        minuteLabel.style.cssText = `
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.8);
-        `;
-
-        const minuteControls = document.createElement('div');
-        minuteControls.style.cssText = `
-            display: flex;
-            gap: 4px;
-        `;
-
-        // 分鐘調整按鈕
-        const minuteMinusBtn = document.createElement('button');
-        minuteMinusBtn.innerHTML = '−';
-        minuteMinusBtn.className = 'time-adjust-btn minute-minus';
-        minuteMinusBtn.style.cssText = `
-            width: 28px;
-            height: 28px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 6px;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-        `;
-
-        const minutePlusBtn = document.createElement('button');
-        minutePlusBtn.innerHTML = '+';
-        minutePlusBtn.className = 'time-adjust-btn minute-plus';
-        minutePlusBtn.style.cssText = minuteMinusBtn.style.cssText;
-
-        minuteControls.appendChild(minuteMinusBtn);
-        minuteControls.appendChild(minutePlusBtn);
-        minuteArea.appendChild(minuteLabel);
-        minuteArea.appendChild(minuteControls);
-
-        // 秒數調整區域
-        const secondArea = document.createElement('div');
-        secondArea.className = 'second-area';
-        secondArea.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        `;
-
-        const secondLabel = document.createElement('div');
-        secondLabel.textContent = '秒數';
-        secondLabel.style.cssText = `
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.8);
-        `;
-
-        const secondControls = document.createElement('div');
-        secondControls.style.cssText = `
-            display: flex;
-            gap: 4px;
-        `;
-
-        // 秒數調整按鈕
-        const secondMinusBtn = document.createElement('button');
-        secondMinusBtn.innerHTML = '−';
-        secondMinusBtn.className = 'time-adjust-btn second-minus';
-        secondMinusBtn.style.cssText = `
-            width: 28px;
-            height: 28px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 6px;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-        `;
-
-        const secondPlusBtn = document.createElement('button');
-        secondPlusBtn.innerHTML = '+';
-        secondPlusBtn.className = 'time-adjust-btn second-plus';
-        secondPlusBtn.style.cssText = secondMinusBtn.style.cssText;
-
-        secondControls.appendChild(secondMinusBtn);
-        secondControls.appendChild(secondPlusBtn);
-        secondArea.appendChild(secondLabel);
-        secondArea.appendChild(secondControls);
-
-        // 播放控制區域
-        const playControlArea = document.createElement('div');
-        playControlArea.className = 'play-control-area';
-        playControlArea.style.cssText = `
-            display: flex;
-            align-items: center;
-            justify-content: center;
             gap: 8px;
         `;
 
-        // 播放/暫停按鈕
-        const playPauseBtn = document.createElement('button');
-        playPauseBtn.innerHTML = '▶';
-        playPauseBtn.className = 'play-pause-btn';
-        playPauseBtn.style.cssText = `
-            width: 48px;
-            height: 48px;
-            background: #e53e3e;
-            border: none;
+        // 開始/暫停按鈕
+        const startPauseBtn = document.createElement('button');
+        startPauseBtn.innerHTML = '▶';
+        startPauseBtn.className = 'start-pause-btn';
+        startPauseBtn.style.cssText = `
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             color: white;
-            font-size: 20px;
+            font-size: 14px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         `;
 
         // 停止按鈕
@@ -412,13 +254,13 @@ class CountdownModule {
         stopBtn.innerHTML = '⏹';
         stopBtn.className = 'stop-btn';
         stopBtn.style.cssText = `
-            width: 36px;
-            height: 36px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
             color: white;
-            font-size: 16px;
+            font-size: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -426,560 +268,276 @@ class CountdownModule {
             transition: all 0.2s ease;
         `;
 
-        // 組裝時間調整區域
-        timeAdjustArea.appendChild(minuteArea);
-        timeAdjustArea.appendChild(secondArea);
-
-        // 組裝播放控制區域
-        playControlArea.appendChild(playPauseBtn);
-        playControlArea.appendChild(stopBtn);
-
         // 組裝控制區域
-        controlArea.appendChild(timeAdjustArea);
-        controlArea.appendChild(playControlArea);
+        controlArea.appendChild(startPauseBtn);
+        controlArea.appendChild(stopBtn);
 
         // 組裝容器
+        countdownContainer.appendChild(timeSettingArea);
         countdownContainer.appendChild(timeDisplay);
         countdownContainer.appendChild(controlArea);
 
         // 儲存計時器狀態
         countdownContainer.timerData = {
             id: countdownId,
-            minutes: 10,
-            seconds: 0,
-            totalSeconds: 10 * 60, // 預設 10:00
+            totalTimeMs: 5 * 60 * 1000, // 5分鐘
+            remainingTimeMs: 5 * 60 * 1000,
             isRunning: false,
             intervalId: null,
             timeDisplay: timeDisplay,
-            playPauseBtn: playPauseBtn
+            startPauseBtn: startPauseBtn,
+            minutesInput: minutesInput,
+            secondsInput: secondsInput,
+            timeSettingArea: timeSettingArea,
+            isFinished: false
         };
 
-        // 綁定按鈕事件
+        // 綁定倒數計時器功能事件
         this.bindCountdownEvents(countdownContainer);
 
-        // 建立控制項
-        this.createCountdownControls(countdownContainer);
+        // 建立統一控制項（使用基礎類別的方法）
+        this.createElementControls(countdownContainer);
 
         // 添加到陣列和頁面
-        this.countdowns.push(countdownContainer);
+        this.elements.push(countdownContainer);
         document.body.appendChild(countdownContainer);
 
-        // 選中新倒數計時器
-        this.selectCountdown(countdownContainer);
-
+        // 選中新建立的倒數計時器
+        this.selectElement(countdownContainer);
+        
         console.log('倒數計時器已建立:', countdownId);
         return countdownContainer;
     }
 
     bindCountdownEvents(countdownContainer) {
-        const timerData = countdownContainer.timerData;
-        const timeAdjustArea = countdownContainer.querySelector('.time-adjust-area');
-        const playControlArea = countdownContainer.querySelector('.play-control-area');
+        const data = countdownContainer.timerData;
         
-        // 分鐘調整按鈕
-        const minuteMinusBtn = timeAdjustArea.querySelector('.minute-minus');
-        const minutePlusBtn = timeAdjustArea.querySelector('.minute-plus');
-        
-        // 秒數調整按鈕
-        const secondMinusBtn = timeAdjustArea.querySelector('.second-minus');
-        const secondPlusBtn = timeAdjustArea.querySelector('.second-plus');
-        
-        // 播放控制按鈕
-        const playPauseBtn = playControlArea.querySelector('.play-pause-btn');
-        const stopBtn = playControlArea.querySelector('.stop-btn');
-
-        // 減少分鐘
-        minuteMinusBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!timerData.isRunning) {
-                timerData.totalSeconds = Math.max(0, timerData.totalSeconds - 60);
+        // 時間輸入變更事件
+        const updateTime = () => {
+            if (!data.isRunning) {
+                const minutes = parseInt(data.minutesInput.value) || 0;
+                const seconds = parseInt(data.secondsInput.value) || 0;
+                data.totalTimeMs = (minutes * 60 + seconds) * 1000;
+                data.remainingTimeMs = data.totalTimeMs;
+                data.isFinished = false;
                 this.updateTimeDisplay(countdownContainer);
             }
-        });
+        };
 
-        // 增加分鐘
-        minutePlusBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!timerData.isRunning) {
-                timerData.totalSeconds = Math.min(99 * 60 + 59, timerData.totalSeconds + 60);
-                this.updateTimeDisplay(countdownContainer);
-            }
-        });
+        data.minutesInput.addEventListener('change', updateTime);
+        data.secondsInput.addEventListener('change', updateTime);
 
-        // 減少秒數 (每次10秒)
-        secondMinusBtn.addEventListener('click', (e) => {
+        // 開始/暫停按鈕事件
+        data.startPauseBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!timerData.isRunning) {
-                timerData.totalSeconds = Math.max(0, timerData.totalSeconds - 10);
-                this.updateTimeDisplay(countdownContainer);
-            }
-        });
-
-        // 增加秒數 (每次10秒)
-        secondPlusBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!timerData.isRunning) {
-                timerData.totalSeconds = Math.min(99 * 60 + 59, timerData.totalSeconds + 10);
-                this.updateTimeDisplay(countdownContainer);
-            }
-        });
-
-        // 播放/暫停
-        playPauseBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (timerData.isRunning) {
+            if (data.isRunning) {
                 this.pauseCountdown(countdownContainer);
             } else {
                 this.startCountdown(countdownContainer);
             }
         });
 
-        // 停止
+        // 停止按鈕事件
+        const stopBtn = countdownContainer.querySelector('.stop-btn');
         stopBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.stopCountdown(countdownContainer);
         });
 
-        // 懸停效果 - 分鐘按鈕
-        [minuteMinusBtn, minutePlusBtn].forEach(btn => {
-            btn.addEventListener('mouseenter', () => {
-                btn.style.background = 'rgba(255, 255, 255, 0.3)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.background = 'rgba(255, 255, 255, 0.2)';
-            });
+        // 滑鼠懸停效果
+        data.startPauseBtn.addEventListener('mouseenter', () => {
+            data.startPauseBtn.style.transform = 'scale(1.1)';
+            data.startPauseBtn.style.background = 'rgba(255, 255, 255, 0.3)';
         });
 
-        // 懸停效果 - 秒數按鈕
-        [secondMinusBtn, secondPlusBtn].forEach(btn => {
-            btn.addEventListener('mouseenter', () => {
-                btn.style.background = 'rgba(255, 255, 255, 0.3)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.background = 'rgba(255, 255, 255, 0.2)';
-            });
+        data.startPauseBtn.addEventListener('mouseleave', () => {
+            data.startPauseBtn.style.transform = 'scale(1)';
+            data.startPauseBtn.style.background = 'rgba(255, 255, 255, 0.2)';
         });
 
-        // 懸停效果 - 停止按鈕
         stopBtn.addEventListener('mouseenter', () => {
-            stopBtn.style.background = 'rgba(255, 255, 255, 0.3)';
-        });
-        stopBtn.addEventListener('mouseleave', () => {
+            stopBtn.style.transform = 'scale(1.1)';
             stopBtn.style.background = 'rgba(255, 255, 255, 0.2)';
         });
 
-        // 懸停效果 - 播放暫停按鈕
-        playPauseBtn.addEventListener('mouseenter', () => {
-            playPauseBtn.style.background = '#c53030';
-        });
-        playPauseBtn.addEventListener('mouseleave', () => {
-            playPauseBtn.style.background = '#e53e3e';
+        stopBtn.addEventListener('mouseleave', () => {
+            stopBtn.style.transform = 'scale(1)';
+            stopBtn.style.background = 'rgba(255, 255, 255, 0.1)';
         });
     }
 
     updateTimeDisplay(countdownContainer) {
-        const timerData = countdownContainer.timerData;
-        const minutes = Math.floor(timerData.totalSeconds / 60);
-        const seconds = timerData.totalSeconds % 60;
+        const data = countdownContainer.timerData;
+        const totalSeconds = Math.ceil(data.remainingTimeMs / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
         
-        const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        timerData.timeDisplay.textContent = timeString;
+        const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        data.timeDisplay.textContent = formattedTime;
         
-        // 時間不足時的警告效果
-        if (timerData.totalSeconds <= 60 && timerData.totalSeconds > 0) {
-            countdownContainer.style.background = 'linear-gradient(135deg, #e53e3e 0%, #c53030 100%)';
-            if (timerData.totalSeconds <= 10) {
-                timerData.timeDisplay.style.animation = 'pulse 0.5s infinite';
-            }
+        // 更新容器外觀表示緊急程度
+        if (totalSeconds <= 10 && totalSeconds > 0) {
+            countdownContainer.style.border = '3px solid #ff6b6b';
+            countdownContainer.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.5)';
+            data.timeDisplay.style.color = '#ffebcd';
+        } else if (totalSeconds === 0) {
+            countdownContainer.style.border = '3px solid #ff0000';
+            countdownContainer.style.boxShadow = '0 6px 20px rgba(255, 0, 0, 0.7)';
+            data.timeDisplay.style.color = '#fff';
         } else {
-            countdownContainer.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-            timerData.timeDisplay.style.animation = 'none';
+            countdownContainer.style.border = `3px solid ${this.config.borderColor}`;
+            countdownContainer.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.3)';
+            data.timeDisplay.style.color = 'white';
         }
     }
 
     startCountdown(countdownContainer) {
-        const timerData = countdownContainer.timerData;
+        const data = countdownContainer.timerData;
+        data.isRunning = true;
+        data.startPauseBtn.innerHTML = '⏸';
+        data.timeSettingArea.style.opacity = '0.5';
+        data.minutesInput.disabled = true;
+        data.secondsInput.disabled = true;
         
-        if (timerData.totalSeconds <= 0) return;
-        
-        // 確保音頻上下文已初始化（瀏覽器安全政策要求用戶互動後才能播放音頻）
-        if (this.audioContext && this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
-        }
-        
-        timerData.isRunning = true;
-        timerData.playPauseBtn.innerHTML = '⏸';
-        
-        timerData.intervalId = setInterval(() => {
-            timerData.totalSeconds--;
+        data.intervalId = setInterval(() => {
+            data.remainingTimeMs -= 1000;
             this.updateTimeDisplay(countdownContainer);
             
-            if (timerData.totalSeconds <= 0) {
+            if (data.remainingTimeMs <= 0) {
                 this.onCountdownFinished(countdownContainer);
             }
         }, 1000);
     }
 
     pauseCountdown(countdownContainer) {
-        const timerData = countdownContainer.timerData;
+        const data = countdownContainer.timerData;
+        data.isRunning = false;
+        data.startPauseBtn.innerHTML = '▶';
         
-        timerData.isRunning = false;
-        timerData.playPauseBtn.innerHTML = '▶';
-        
-        if (timerData.intervalId) {
-            clearInterval(timerData.intervalId);
-            timerData.intervalId = null;
+        if (data.intervalId) {
+            clearInterval(data.intervalId);
+            data.intervalId = null;
         }
     }
 
     stopCountdown(countdownContainer) {
-        const timerData = countdownContainer.timerData;
-        
+        const data = countdownContainer.timerData;
         this.pauseCountdown(countdownContainer);
-        // 重置到初始設定值 (10分鐘)
-        timerData.totalSeconds = timerData.minutes * 60 + timerData.seconds;
+        data.remainingTimeMs = data.totalTimeMs;
+        data.isFinished = false;
+        data.timeSettingArea.style.opacity = '1';
+        data.minutesInput.disabled = false;
+        data.secondsInput.disabled = false;
         this.updateTimeDisplay(countdownContainer);
     }
 
     onCountdownFinished(countdownContainer) {
-        const timerData = countdownContainer.timerData;
-        
+        const data = countdownContainer.timerData;
         this.pauseCountdown(countdownContainer);
+        data.isFinished = true;
+        data.remainingTimeMs = 0;
+        this.updateTimeDisplay(countdownContainer);
         
         // 播放鈴聲
         if (this.alarmSound) {
-            // 確保音頻上下文已啟動 (瀏覽器安全政策要求)
-            if (this.audioContext.state === 'suspended') {
-                this.audioContext.resume().then(() => {
-                    this.alarmSound.play();
-                });
-            } else {
-                this.alarmSound.play();
-            }
+            this.alarmSound.play();
         }
         
-        // 顯示Toast通知
-        this.showToast('⏰ 倒數計時結束！', 4000);
+        // 顯示通知
+        this.showToast('⏰ 時間到了！', 5000);
         
-        // 閃爍效果
-        let blinkCount = 0;
-        const blinkInterval = setInterval(() => {
-            countdownContainer.style.background = blinkCount % 2 === 0 ? 
-                'linear-gradient(135deg, #e53e3e 0%, #c53030 100%)' : 
-                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-            blinkCount++;
-            
-            if (blinkCount >= 8) { // 增加閃爍次數
-                clearInterval(blinkInterval);
-                countdownContainer.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        // 閃爍動畫
+        let flashCount = 0;
+        const flashInterval = setInterval(() => {
+            countdownContainer.style.opacity = countdownContainer.style.opacity === '0.5' ? '1' : '0.5';
+            flashCount++;
+            if (flashCount >= 10) { // 閃爍5次
+                clearInterval(flashInterval);
+                countdownContainer.style.opacity = '1';
             }
         }, 300);
         
-        // 顯示完成通知
-        timerData.timeDisplay.textContent = '00:00';
-        timerData.timeDisplay.style.animation = 'none'; // 停止脈衝動畫
+        console.log('倒數計時器已完成:', data.id);
+    }
+
+    // 覆寫基礎類別的縮放處理
+    handleResize(e) {
+        const rect = this.selectedElement.getBoundingClientRect();
+        const deltaX = e.clientX - rect.left;
+        const deltaY = e.clientY - rect.top;
         
-        console.log('倒數計時結束！Toast通知已顯示，鈴聲已播放');
-    }
-
-    createCountdownControls(countdownContainer) {
-        // 移動按鈕（左上角）
-        const moveBtn = document.createElement('button');
-        moveBtn.innerHTML = '✋';
-        moveBtn.title = '移動倒數計時器';
-        moveBtn.className = 'move-handle countdown-control-btn';
-        moveBtn.style.cssText = `
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background: #5a67d8;
-            color: white;
-            border: 2px solid white;
-            border-radius: 50%;
-            cursor: move;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: all 0.2s ease;
-            z-index: 9999;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            pointer-events: auto;
-        `;
-
-        // 為移動按鈕添加拖曳事件
-        moveBtn.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
-            this.isDragging = true;
-            this.selectedCountdown = countdownContainer;
-            this.selectCountdown(countdownContainer);
-
-            const rect = countdownContainer.getBoundingClientRect();
-            this.dragOffset = {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
-
-            e.preventDefault();
-        });
-
-        // 刪除按鈕（右上角）
-        const deleteBtn = document.createElement('button');
-        deleteBtn.innerHTML = '🗑️';
-        deleteBtn.title = '刪除倒數計時器';
-        deleteBtn.className = 'countdown-control-btn';
-        deleteBtn.style.cssText = `
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background: #ef4444;
-            color: white;
-            border: 2px solid white;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: all 0.2s ease;
-            z-index: 9999;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            pointer-events: auto;
-        `;
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.deleteCountdown(countdownContainer);
-        });
-
-        // 縮放控制點（右下角）
-        const resizeHandle = document.createElement('div');
-        resizeHandle.className = 'resize-handle countdown-control-btn';
-        resizeHandle.style.cssText = `
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background: #10b981;
-            border: 2px solid white;
-            cursor: se-resize;
-            border-radius: 50%;
-            opacity: 0;
-            transition: all 0.2s ease;
-            z-index: 9999;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            pointer-events: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
+        // 保持倒數計時器的寬高比例
+        const newWidth = Math.max(this.config.minWidth, deltaX);
+        const newHeight = Math.max(this.config.minHeight, newWidth * 0.4286); // 保持 280:120 的比例
         
-        // 在縮放控制點中新增箭頭圖示
-        resizeHandle.innerHTML = `
-            <div style="
-                color: white;
-                font-size: 10px;
-                line-height: 1;
-                transform: rotate(-45deg);
-            ">↕</div>
-        `;
-
-        // 為縮放控制點添加縮放事件
-        resizeHandle.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
-            this.isResizing = true;
-            this.selectedCountdown = countdownContainer;
-            this.resizeHandle = resizeHandle;
-            this.selectCountdown(countdownContainer);
-            e.preventDefault();
-        });
-
-        // 將控制項新增到 document.body
-        document.body.appendChild(moveBtn);
-        document.body.appendChild(deleteBtn);
-        document.body.appendChild(resizeHandle);
-
-        // 儲存控制項參考
-        countdownContainer.moveBtn = moveBtn;
-        countdownContainer.deleteBtn = deleteBtn;
-        countdownContainer.resizeHandle = resizeHandle;
-
-        // 初始位置更新
-        this.updateControlPositions(countdownContainer);
-    }
-
-    updateControlPositions(countdownContainer) {
-        if (!countdownContainer.moveBtn) return;
-
-        const rect = countdownContainer.getBoundingClientRect();
+        this.selectedElement.style.width = newWidth + 'px';
+        this.selectedElement.style.height = newHeight + 'px';
         
-        // 移動按鈕位置（左上角）
-        countdownContainer.moveBtn.style.left = (rect.left - 15) + 'px';
-        countdownContainer.moveBtn.style.top = (rect.top - 15) + 'px';
+        // 調整字體大小
+        const timeDisplay = this.selectedElement.querySelector('.time-display');
+        const scaleFactor = newWidth / this.config.defaultWidth;
+        timeDisplay.style.fontSize = (28 * scaleFactor) + 'px';
         
-        // 刪除按鈕位置（右上角）
-        countdownContainer.deleteBtn.style.left = (rect.right - 15) + 'px';
-        countdownContainer.deleteBtn.style.top = (rect.top - 15) + 'px';
-        
-        // 縮放控制點位置（右下角）
-        countdownContainer.resizeHandle.style.left = (rect.right - 15) + 'px';
-        countdownContainer.resizeHandle.style.top = (rect.bottom - 15) + 'px';
+        this.updateControlPositions(this.selectedElement);
     }
 
-    selectCountdown(countdownContainer) {
-        // 取消之前的選擇
-        if (this.selectedCountdown && this.selectedCountdown !== countdownContainer) {
-            this.selectedCountdown.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
-        }
-        
-        // 設定新的選擇
-        this.selectedCountdown = countdownContainer;
-        countdownContainer.style.boxShadow = '0 8px 24px rgba(239, 68, 68, 0.5)';
-        
-        // 更新控制項位置並顯示
-        this.updateControlPositions(countdownContainer);
-        this.showCountdownControls(countdownContainer);
-        
-        console.log('倒數計時器已選中:', countdownContainer.id);
-    }
-
-    showCountdownControls(countdownContainer) {
-        if (!countdownContainer.moveBtn) return;
-        
-        countdownContainer.moveBtn.style.opacity = '1';
-        countdownContainer.deleteBtn.style.opacity = '1';
-        countdownContainer.resizeHandle.style.opacity = '1';
-    }
-
-    hideCountdownControls(countdownContainer) {
-        if (!countdownContainer.moveBtn) return;
-        
-        countdownContainer.moveBtn.style.opacity = '0';
-        countdownContainer.deleteBtn.style.opacity = '0';
-        countdownContainer.resizeHandle.style.opacity = '0';
-    }
-
-    getCountdownAtPosition(x, y) {
-        for (let i = this.countdowns.length - 1; i >= 0; i--) {
-            const countdown = this.countdowns[i];
-            const rect = countdown.getBoundingClientRect();
-            const canvasRect = this.canvas.getBoundingClientRect();
-            
-            // 轉換為相對於畫布的座標
-            const relativeX = x + canvasRect.left;
-            const relativeY = y + canvasRect.top;
-            
-            if (relativeX >= rect.left && relativeX <= rect.right &&
-                relativeY >= rect.top && relativeY <= rect.bottom) {
-                return countdown;
-            }
-        }
-        return null;
-    }
-
-    handleMouseDown(e) {
-        // 處理控制按鈕的拖曳邏輯已在按鈕事件中處理
-    }
-
-    handleMouseMove(e) {
-        if (!this.active) return;
-
-        if (this.isDragging && this.selectedCountdown) {
-            const newX = e.clientX - this.dragOffset.x;
-            const newY = e.clientY - this.dragOffset.y;
-            this.selectedCountdown.style.left = newX + 'px';
-            this.selectedCountdown.style.top = newY + 'px';
-            this.updateControlPositions(this.selectedCountdown);
-        } else if (this.isResizing && this.selectedCountdown) {
-            const rect = this.selectedCountdown.getBoundingClientRect();
-            const newWidth = Math.max(this.minWidth, e.clientX - rect.left);
-            const newHeight = Math.max(this.minHeight, e.clientY - rect.top);
-            
-            this.selectedCountdown.style.width = newWidth + 'px';
-            this.selectedCountdown.style.height = newHeight + 'px';
-            
-            // 調整字體大小
-            const timeDisplay = this.selectedCountdown.querySelector('.time-display');
-            const scale = Math.min(newWidth / this.defaultWidth, newHeight / this.defaultHeight);
-            const fontSize = Math.max(24, 36 * scale);
-            timeDisplay.style.fontSize = fontSize + 'px';
-            
-            this.updateControlPositions(this.selectedCountdown);
+    // 覆寫基礎類別的刪除回調
+    onElementDeleted(countdownContainer) {
+        // 停止倒數計時器並清理資源
+        const data = countdownContainer.timerData;
+        if (data && data.intervalId) {
+            clearInterval(data.intervalId);
         }
     }
 
-    handleMouseUp(e) {
-        if (!this.active) return;
-
-        this.isDragging = false;
-        this.isResizing = false;
-        this.resizeHandle = null;
-    }
-
-    deleteCountdown(countdownContainer) {
-        // 停止計時器
-        if (countdownContainer.timerData.intervalId) {
-            clearInterval(countdownContainer.timerData.intervalId);
-        }
-
-        // 從陣列中移除
-        const index = this.countdowns.findIndex(countdown => countdown === countdownContainer);
-        if (index !== -1) {
-            this.countdowns.splice(index, 1);
-        }
-
-        // 移除控制按鈕
-        if (countdownContainer.moveBtn && countdownContainer.moveBtn.parentNode) {
-            countdownContainer.moveBtn.parentNode.removeChild(countdownContainer.moveBtn);
-        }
-        if (countdownContainer.deleteBtn && countdownContainer.deleteBtn.parentNode) {
-            countdownContainer.deleteBtn.parentNode.removeChild(countdownContainer.deleteBtn);
-        }
-        if (countdownContainer.resizeHandle && countdownContainer.resizeHandle.parentNode) {
-            countdownContainer.resizeHandle.parentNode.removeChild(countdownContainer.resizeHandle);
-        }
-
-        // 移除倒數計時器本身
-        if (countdownContainer.parentNode) {
-            countdownContainer.parentNode.removeChild(countdownContainer);
-        }
-
-        // 清除選擇
-        if (this.selectedCountdown === countdownContainer) {
-            this.selectedCountdown = null;
-        }
-
-        console.log('倒數計時器已刪除:', countdownContainer.id);
-    }
-
-    deleteSelectedCountdown() {
-        if (this.selectedCountdown) {
-            this.deleteCountdown(this.selectedCountdown);
-        }
+    // 直接建立倒數計時器（用於app.js調用）
+    createCountdownDirectly(x, y) {
+        return this.createCountdown(x, y);
     }
 
     // 清空所有倒數計時器
     clearAllCountdowns() {
-        [...this.countdowns].forEach(countdown => {
-            this.deleteCountdown(countdown);
-        });
-        this.countdowns = [];
+        this.clearAllElements();
     }
 
-    // 直接建立倒數計時器（新增方法）
-    createCountdownDirectly(x, y) {
-        // 直接建立倒數計時器
-        const countdownContainer = this.createCountdown(x, y);
-        
-        console.log('直接建立倒數計時器於位置:', x, y);
-        return countdownContainer;
+    // 獲取倒數計時器在指定位置（保持向後兼容）
+    getCountdownAtPosition(x, y) {
+        return this.getElementAtPosition(x, y);
     }
 
-    // 隱藏所有倒數計時器控制項（新增方法）
-    hideAllControls() {
-        this.countdowns.forEach(countdown => {
-            this.hideCountdownControls(countdown);
-        });
-        this.selectedCountdown = null;
+    // 選中倒數計時器（保持向後兼容）
+    selectCountdown(countdownContainer) {
+        this.selectElement(countdownContainer);
+    }
+
+    // 顯示/隱藏倒數計時器控制項（保持向後兼容）
+    showCountdownControls(countdownContainer) {
+        this.showElementControls(countdownContainer);
+    }
+
+    hideCountdownControls(countdownContainer) {
+        this.hideElementControls(countdownContainer);
+    }
+
+    // 刪除倒數計時器（保持向後兼容）
+    deleteCountdown(countdownContainer) {
+        this.deleteElement(countdownContainer);
+    }
+
+    deleteSelectedCountdown() {
+        this.deleteSelectedElement();
+    }
+
+    // 獲取所有倒數計時器（保持向後兼容）
+    get countdowns() {
+        return this.elements;
+    }
+
+    get selectedCountdown() {
+        return this.selectedElement;
+    }
+
+    set selectedCountdown(value) {
+        this.selectedElement = value;
     }
 } 
