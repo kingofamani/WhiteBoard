@@ -274,9 +274,9 @@ class BaseControlModule {
     selectElement(container) {
         if (!container) return;
 
-        // 如果有先前選中的元素，隱藏其控制項
-        if (this.selectedElement && this.selectedElement !== container) {
-            this.hideElementControls(this.selectedElement);
+        // 先隱藏所有模組的控制項（如果有app實例）
+        if (this.app && this.app.hideAllControls) {
+            this.app.hideAllControls();
         }
 
         this.selectedElement = container;

@@ -3,7 +3,7 @@
  * 負責收集所有模組的資料並進行儲存/載入操作
  */
 class SaveLoadModule {
-    constructor(canvasModule, backgroundModule, textToolModule, notesModule, qrCodeModule, youtubeModule, imageModule, countdownModule, stopwatchModule) {
+    constructor(canvasModule, backgroundModule, textToolModule, notesModule, qrCodeModule, youtubeModule, imageModule, countdownModule, stopwatchModule, linkModule) {
         this.canvasModule = canvasModule;
         this.backgroundModule = backgroundModule;
         this.textToolModule = textToolModule;
@@ -13,6 +13,7 @@ class SaveLoadModule {
         this.imageModule = imageModule;
         this.countdownModule = countdownModule;
         this.stopwatchModule = stopwatchModule;
+        this.linkModule = linkModule;
     }
 
     /**
@@ -46,6 +47,9 @@ class SaveLoadModule {
             
             // 碼錶資料
             stopwatches: this.stopwatchModule.exportData(),
+            
+            // 超連結資料
+            links: this.linkModule.exportData(),
             
             // 時間戳記
             exportedAt: new Date().toISOString()
@@ -107,6 +111,11 @@ class SaveLoadModule {
                 this.stopwatchModule.importData(projectData.stopwatches);
             }
 
+            // 載入超連結
+            if (projectData.links && Array.isArray(projectData.links)) {
+                this.linkModule.importData(projectData.links);
+            }
+
             // 重繪所有內容
             this.canvasModule.redrawAllContent();
 
@@ -133,6 +142,7 @@ class SaveLoadModule {
         this.imageModule.clearAll();
         this.countdownModule.clearAll();
         this.stopwatchModule.clearAll();
+        this.linkModule.clearAll();
         
         // 重設背景為預設
         this.backgroundModule.setBackground('white');

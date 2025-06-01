@@ -622,10 +622,9 @@ class QRCodeModule {
     selectQR(qrContainer) {
         if (!qrContainer) return;
 
-        // 如果有先前選中的 QR code，隱藏其控制項並重置邊框
-        if (this.selectedQR && this.selectedQR !== qrContainer) {
-            this.hideQRControls(this.selectedQR);
-            // resetElementBorder 由 app.js 處理
+        // 先隱藏所有模組的控制項（如果有app實例）
+        if (this.app && this.app.hideAllControls) {
+            this.app.hideAllControls();
         }
 
         this.selectedQR = qrContainer;

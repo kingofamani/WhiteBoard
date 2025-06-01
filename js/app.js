@@ -7,6 +7,7 @@ let youtubeModule;
 let imageModule;
 let countdownModule;
 let stopwatchModule;
+let linkModule;
 let volumeDetectionModule;
 
 // 專案管理系統
@@ -21,14 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     canvasModule = new CanvasModule('whiteboard');
     backgroundModule = new BackgroundModule(canvasModule);
     textToolModule = new TextToolModule(canvasModule, backgroundModule);
-    notesModule = new NotesModule(canvasModule, backgroundModule);
     
-    // 建立 app 實例以便傳遞給其他模組
+    // 建立 app 實例以便傳遞給所有需要的模組
     const app = {
         canvasModule,
         backgroundModule,
         textToolModule,
-        notesModule,
         setSelectedElement: (element) => {
             selectedElement = element;
         },
@@ -41,14 +40,21 @@ document.addEventListener('DOMContentLoaded', () => {
             imageModule.hideAllControls();
             countdownModule.hideAllControls();
             stopwatchModule.hideAllControls();
+            linkModule.hideAllControls();
         }
     };
 
+    // 初始化所有需要app實例的模組
+    notesModule = new NotesModule(canvasModule, backgroundModule, app);
     qrCodeModule = new QRCodeModule(canvasModule, backgroundModule, app);
     youtubeModule = new YouTubeModule(canvasModule, backgroundModule, app);
     imageModule = new ImageModule(canvasModule, backgroundModule, app);
     countdownModule = new CountdownModule(canvasModule, backgroundModule, app);
     stopwatchModule = new StopwatchModule(canvasModule, backgroundModule, app);
+    linkModule = new LinkModule(canvasModule, backgroundModule, app);
+
+    // 更新app實例以包含notesModule
+    app.notesModule = notesModule;
 
     // 初始化音量偵測模組
     volumeDetectionModule = new VolumeDetectionModule();
@@ -64,7 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
         youtubeModule, 
         imageModule, 
         countdownModule, 
-        stopwatchModule
+        stopwatchModule,
+        linkModule
     );
     
     // 建立專案UI（這會顯示啟動畫面）
@@ -84,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageToolBtn = document.getElementById('imageTool');
     const countdownToolBtn = document.getElementById('countdownTool');
     const stopwatchToolBtn = document.getElementById('stopwatchTool');
+    const linkToolBtn = document.getElementById('linkTool');
     const colorPicker = document.getElementById('colorPicker');
     const lineWidthSlider = document.getElementById('lineWidth');
     const lineWidthValue = document.getElementById('lineWidthValue');
@@ -235,6 +243,21 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedElement = null;
     });
 
+    linkToolBtn.addEventListener('click', () => {
+        // 保持cursor工具選中狀態
+        canvasModule.setTool('cursor');
+        setActiveToolButton(cursorTool);
+        canvas.style.cursor = 'default';
+        
+        // 顯示超連結輸入對話框
+        const centerX = canvas.offsetWidth / 2;
+        const centerY = canvas.offsetHeight / 2;
+        linkModule.createElement(centerX, centerY);
+        
+        app.hideAllControls();
+        selectedElement = null;
+    });
+
     // 顏色選擇
     colorPicker.addEventListener('input', (e) => { // 'input' 事件即時響應
         canvasModule.setColor(e.target.value);
@@ -256,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
         imageModule.clearAllImages(); // 清空圖片
         countdownModule.clearAllCountdowns(); // 清空倒數計時器
         stopwatchModule.clearAllStopwatches(); // 清空碼錶
+        linkModule.clearAllLinks(); // 清空超連結
         backgroundModule.drawBackground(); // 然後重繪背景
         // 此時前景是空的，不需要 redrawAllContent
     });
@@ -304,6 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (stopwatchModule.stopwatches.includes(element)) {
             // 碼錶的選中效果是 box-shadow，非選中也是 box-shadow
             element.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.3)';
+        } else if (linkModule.links.includes(element)) {
+            element.style.border = '2px solid #e5e7eb'; // 超連結預設邊框
         }
         // 可以為其他模組添加更多 else if
     }
@@ -397,6 +423,25 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('[App.js] Clicked QR container directly:', eventTarget.id);
         }
 
+        // 檢查超連結模組的內部元素點擊
+        // 檢查是否點擊超連結的開啟按鈕（不進行容器映射，讓按鈕功能正常運作）
+        if (eventTarget.classList.contains('link-open-circle-btn')) {
+            console.log('[App.js] Clicked link open button, not mapping to container');
+            // 不修改 eventTarget，讓按鈕的點擊事件正常處理
+        }
+        // 檢查是否點擊超連結內部的其他元素（如圖片、文字等）
+        else if (eventTarget.closest('.link-container')) {
+            const linkContainer = eventTarget.closest('.link-container');
+            if (linkModule.links.includes(linkContainer)) {
+                eventTarget = linkContainer;
+                console.log('[App.js] Clicked link inner element, mapping to parent container:', linkContainer.id);
+            }
+        }
+        // 檢查是否點擊的就是超連結容器本身
+        else if (linkModule.links.includes(eventTarget)) {
+            console.log('[App.js] Clicked link container directly:', eventTarget.id);
+        }
+
         // TODO: 為其他模組的控制按鈕和內部元素添加類似的邏輯
         // 例如：
         // if (eventTarget.classList.contains('note-control-btn')) {
@@ -414,6 +459,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log('[App.js] Final event target:', eventTarget, 'className:', eventTarget.className, 'id:', eventTarget.id);
 
+        // 如果點擊的是超連結開啟按鈕，不進行任何元素選擇操作
+        if (eventTarget.classList.contains('link-open-circle-btn')) {
+            console.log('[App.js] Clicked link open button, ignoring element selection');
+            return; // 直接返回，不處理元素選擇
+        }
+
         // 優先使用事件的直接目標 (可能已被修改為父容器) 來判斷是否為已知的可選元素
         if (notesModule.notes.includes(eventTarget)) {
             clickedElement = eventTarget;
@@ -426,6 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (countdownModule.countdowns.includes(eventTarget)) {
             clickedElement = eventTarget;
         } else if (stopwatchModule.stopwatches.includes(eventTarget)) {
+            clickedElement = eventTarget;
+        } else if (linkModule.links.includes(eventTarget)) {
             clickedElement = eventTarget;
         }
 
@@ -457,6 +510,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const stopwatch = stopwatchModule.getStopwatchAtPosition(x, y);
             if (stopwatch) clickedElement = stopwatch;
         }
+        if (!clickedElement) {
+            const link = linkModule.getLinkAtPosition(x, y);
+            if (link) clickedElement = link;
+        }
 
         console.log('[App.js] Final clicked element:', clickedElement ? clickedElement.id : 'null');
 
@@ -467,94 +524,43 @@ document.addEventListener('DOMContentLoaded', () => {
             if (previouslySelectedElement && previouslySelectedElement !== clickedElement) {
                 resetElementBorder(previouslySelectedElement);
             }
-            
-            app.hideAllControls(); 
 
+            // 設定全域選中元素
             selectedElement = clickedElement; 
 
+            // 呼叫對應模組的選擇方法，這會自動隱藏所有其他元素的控制按鈕，然後顯示該元素的控制按鈕
             console.log('[App.js] Element clicked:', clickedElement.id);
 
             if (notesModule.notes.includes(clickedElement)) {
                 notesModule.selectNote(clickedElement);
                 console.log('[App.js] notesModule.selectNote called for:', clickedElement.id);
-                // 檢查控制按鈕狀態
-                if (clickedElement.moveBtn) {
-                    console.log('[App.js] Note Move Btn Opacity:', clickedElement.moveBtn.style.opacity);
-                    console.log('[App.js] Note Move Btn Display:', window.getComputedStyle(clickedElement.moveBtn).display);
-                    console.log('[App.js] Note Move Btn Visibility:', window.getComputedStyle(clickedElement.moveBtn).visibility);
-                    console.log('[App.js] Note Move Btn OffsetTop:', clickedElement.moveBtn.offsetTop);
-                    console.log('[App.js] Note Move Btn OffsetLeft:', clickedElement.moveBtn.offsetLeft);
-                } else {
-                    console.log('[App.js] Note Move Btn not found for:', clickedElement.id);
-                }
             } else if (qrCodeModule.qrCodes.includes(clickedElement)) {
                 qrCodeModule.selectQR(clickedElement);
                 console.log('[App.js] qrCodeModule.selectQR called for:', clickedElement.id);
-                if (clickedElement.moveBtn) {
-                    console.log('[App.js] QR Move Btn Opacity:', clickedElement.moveBtn.style.opacity);
-                    console.log('[App.js] QR Move Btn Display:', window.getComputedStyle(clickedElement.moveBtn).display);
-                    console.log('[App.js] QR Move Btn Visibility:', window.getComputedStyle(clickedElement.moveBtn).visibility);
-                    console.log('[App.js] QR Move Btn OffsetTop:', clickedElement.moveBtn.offsetTop);
-                    console.log('[App.js] QR Move Btn OffsetLeft:', clickedElement.moveBtn.offsetLeft);
-                } else {
-                    console.log('[App.js] QR Move Btn not found for:', clickedElement.id);
-                }
             } else if (youtubeModule.youtubeVideos.includes(clickedElement)) {
                 youtubeModule.selectVideo(clickedElement);
                 console.log('[App.js] youtubeModule.selectVideo called for:', clickedElement.id);
-                 if (clickedElement.moveBtn) {
-                    console.log('[App.js] YouTube Move Btn Opacity:', clickedElement.moveBtn.style.opacity);
-                    console.log('[App.js] YouTube Move Btn Display:', window.getComputedStyle(clickedElement.moveBtn).display);
-                    console.log('[App.js] YouTube Move Btn Visibility:', window.getComputedStyle(clickedElement.moveBtn).visibility);
-                    console.log('[App.js] YouTube Move Btn OffsetTop:', clickedElement.moveBtn.offsetTop);
-                    console.log('[App.js] YouTube Move Btn OffsetLeft:', clickedElement.moveBtn.offsetLeft);
-                } else {
-                    console.log('[App.js] YouTube Move Btn not found for:', clickedElement.id);
-                }
             } else if (imageModule.images.includes(clickedElement)) {
                 imageModule.selectImage(clickedElement);
                 console.log('[App.js] imageModule.selectImage called for:', clickedElement.id);
-                if (clickedElement.moveBtn) {
-                    console.log('[App.js] Image Move Btn Opacity:', clickedElement.moveBtn.style.opacity);
-                    console.log('[App.js] Image Move Btn Display:', window.getComputedStyle(clickedElement.moveBtn).display);
-                    console.log('[App.js] Image Move Btn Visibility:', window.getComputedStyle(clickedElement.moveBtn).visibility);
-                    console.log('[App.js] Image Move Btn OffsetTop:', clickedElement.moveBtn.offsetTop);
-                    console.log('[App.js] Image Move Btn OffsetLeft:', clickedElement.moveBtn.offsetLeft);
-                } else {
-                    console.log('[App.js] Image Move Btn not found for:', clickedElement.id);
-                }
             } else if (countdownModule.countdowns.includes(clickedElement)) {
                 countdownModule.selectCountdown(clickedElement);
                 console.log('[App.js] countdownModule.selectCountdown called for:', clickedElement.id);
-                if (clickedElement.moveBtn) {
-                    console.log('[App.js] Countdown Move Btn Opacity:', clickedElement.moveBtn.style.opacity);
-                    console.log('[App.js] Countdown Move Btn Display:', window.getComputedStyle(clickedElement.moveBtn).display);
-                    console.log('[App.js] Countdown Move Btn Visibility:', window.getComputedStyle(clickedElement.moveBtn).visibility);
-                    console.log('[App.js] Countdown Move Btn OffsetTop:', clickedElement.moveBtn.offsetTop);
-                    console.log('[App.js] Countdown Move Btn OffsetLeft:', clickedElement.moveBtn.offsetLeft);
-                } else {
-                    console.log('[App.js] Countdown Move Btn not found for:', clickedElement.id);
-                }
             } else if (stopwatchModule.stopwatches.includes(clickedElement)) {
                 stopwatchModule.selectStopwatch(clickedElement);
                 console.log('[App.js] stopwatchModule.selectStopwatch called for:', clickedElement.id);
-                if (clickedElement.moveBtn) {
-                    console.log('[App.js] Stopwatch Move Btn Opacity:', clickedElement.moveBtn.style.opacity);
-                    console.log('[App.js] Stopwatch Move Btn Display:', window.getComputedStyle(clickedElement.moveBtn).display);
-                    console.log('[App.js] Stopwatch Move Btn Visibility:', window.getComputedStyle(clickedElement.moveBtn).visibility);
-                    console.log('[App.js] Stopwatch Move Btn OffsetTop:', clickedElement.moveBtn.offsetTop);
-                    console.log('[App.js] Stopwatch Move Btn OffsetLeft:', clickedElement.moveBtn.offsetLeft);
-                } else {
-                    console.log('[App.js] Stopwatch Move Btn not found for:', clickedElement.id);
-                }
+            } else if (linkModule.links.includes(clickedElement)) {
+                linkModule.selectElement(clickedElement);
+                console.log('[App.js] linkModule.selectElement called for:', clickedElement.id);
             }
         } else {
-            // 點擊到空白處
-            app.hideAllControls(); // 隱藏所有控制項
+            // 點擊到空白處，隱藏所有按鈕
+            app.hideAllControls();
+
             if (previouslySelectedElement) {
-                resetElementBorder(previouslySelectedElement); // 重置之前選中元素的邊框
+                resetElementBorder(previouslySelectedElement);
             }
-            selectedElement = null; // 清除全域選中
+            selectedElement = null;
         }
     }
 
