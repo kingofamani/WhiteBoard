@@ -301,7 +301,7 @@ WhiteBoard/
 ## 專案展示
 
 本專案已部署，可直接訪問以下網址：
-[Web 教學白板 Demo](your-demo-url-here)
+[Web 教學白板 Demo](https://aiamani.com/pages/whiteboard/)
 
 ## 貢獻指南
 
