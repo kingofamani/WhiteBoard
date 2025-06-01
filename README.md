@@ -131,6 +131,7 @@
 *   **統一控制**: BaseControlModule 基礎類別
 *   **資料儲存**: localStorage (專案管理)
 *   **音頻處理**: Web Audio API
+*   **開發流程**: 標準化工具開發流程 (詳見 FLOW.md)
 
 ## 檔案結構
 
@@ -151,11 +152,12 @@ WhiteBoard/
 │   ├── ImageModule.js      # 圖片插入模組 [繼承]
 │   ├── CountdownModule.js  # 倒數計時器模組 [繼承]
 │   ├── StopwatchModule.js  # 碼錶模組 [繼承]
+│   ├── LinkModule.js       # 超連結模組 [繼承] ⭐ 新增
 │   └── VolumeDetectionModule.js # 音量偵測模組
 ├── README.md               # 專案說明
 ├── TODO.md                 # 開發待辦事項
 ├── FRAMEWORK.md            # 程式架構說明
-├── FLOW.md                 # 程式流程圖
+├── FLOW.md                 # 程式流程圖 + 工具開發指南 ⭐
 └── INIT.md                 # 專案初始化說明
 ```
 
@@ -296,8 +298,48 @@ WhiteBoard/
 - 使用者體驗優化
 - 效能優化與功能擴展
 
----
+## 專案展示
+
+本專案已部署，可直接訪問以下網址：
+[Web 教學白板 Demo](your-demo-url-here)
+
+## 貢獻指南
+
+歡迎提交 Issue 和 Pull Request 來改進這個專案！
+
+## 開發者指南 ⭐
+
+### 🛠️ 新增工具開發流程
+
+如需新增自訂工具到白板，請參考詳細的開發指南：
+
+1. **開發流程圖**: 請查看 `FLOW.md` 中的「新增工具開發流程」章節
+2. **架構說明**: 請查看 `FRAMEWORK.md` 中的「工具開發流程與最佳實踐」章節
+3. **程式碼範例**: 參考現有模組如 `LinkModule.js` 的實作方式
+
+### 🔧 開發方式選擇
+
+- **方式一（推薦）**: 繼承 `BaseControlModule` - 適用於需要標準 3 按鈕控制的工具
+- **方式二**: 獨立實作 - 適用於需要特殊控制邏輯的工具
+
+### ✅ 開發檢查清單
+
+開發新工具時請確保：
+- [ ] 正確傳遞 `appInstance` 參數
+- [ ] 實作 `selectXXX` 方法並先呼叫 `app.hideAllControls()`
+- [ ] 實作 `hideAllControls()` 方法
+- [ ] 實作 `exportData/importData` 方法
+- [ ] 在 `app.js` 中正確整合
+- [ ] 通過功能測試（點擊、儲存、載入）
+
+### 🐛 常見問題
+
+- **按鈕顯示異常**: 檢查 app 實例傳遞和初始化順序
+- **儲存載入失敗**: 確保使用 `style.left/top` 屬性而非 `getBoundingClientRect()`
+- **控制項位置錯誤**: 驗證容器使用 `position: absolute`
+
+詳細的除錯指南和程式碼範例請參考 `FLOW.md` 和 `FRAMEWORK.md`。
 
 ## 授權
 
-MIT License - 歡迎使用和修改 
+MIT License 

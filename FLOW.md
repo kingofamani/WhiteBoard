@@ -164,4 +164,139 @@ graph TD
     CLOSE2 --> CLOSE4["使用者選擇"];
     CLOSE4 -->|儲存| PM8;
     CLOSE4 -->|不儲存| CLOSE3;
+
+    %% ===========================================
+    %% 新增工具開發流程 (詳細程式設計指南)
+    %% ===========================================
+    
+    NEWTOOL["新增工具開發"] --> NT1{"選擇開發方式"};
+    NT1 -->|繼承BaseControlModule| NT_BASE["方式一: 繼承BaseControlModule"];
+    NT1 -->|獨立實作| NT_INDEP["方式二: 獨立實作"];
+
+    %% 方式一: 繼承BaseControlModule
+    NT_BASE --> NTB1["建立 XXXModule.js"];
+    NTB1 --> NTB2["class XXXModule extends BaseControlModule"];
+    NTB2 --> NTB3["定義 constructor(canvasModule, backgroundModule, appInstance)"];
+    NTB3 --> NTB4["設定 config 物件"];
+    NTB4 --> NTB5["呼叫 super(canvasModule, backgroundModule, appInstance, config)"];
+    NTB5 --> NTB6["實作 createElement(x, y) 方法"];
+    NTB6 --> NTB7["建立 DOM 元素容器"];
+    NTB7 --> NTB8["設定容器樣式和內容"];
+    NTB8 --> NTB9["呼叫 this.createElementControls(container)"];
+    NTB9 --> NTB10["this.elements.push(container)"];
+    NTB10 --> NTB11["document.body.appendChild(container)"];
+    NTB11 --> NTB12["return container"];
+    NTB12 --> NTB13["實作 createXXXDirectly(x, y) 方法"];
+    NTB13 --> NTB14["return this.createElement(x, y)"];
+    NTB14 --> NTB15["實作 exportElementData(element) 方法"];
+    NTB15 --> NTB16["const baseData = super.exportElementData(element)"];
+    NTB16 --> NTB17["新增特定資料屬性"];
+    NTB17 --> NTB18["return {...baseData, 特定屬性}"];
+    NTB18 --> NTB19["實作 importElementData(elementData) 方法"];
+    NTB19 --> NTB20["const element = this.createElement(x, y)"];
+    NTB20 --> NTB21["設定元素特定屬性"];
+    NTB21 --> NTB22["更新到 app.js"];
+
+    %% 方式二: 獨立實作 (如QRCodeModule)
+    NT_INDEP --> NTI1["建立 XXXModule.js"];
+    NTI1 --> NTI2["class XXXModule"];
+    NTI2 --> NTI3["定義 constructor(canvasModule, backgroundModule, appInstance)"];
+    NTI3 --> NTI4["儲存 this.app = appInstance"];
+    NTI4 --> NTI5["初始化 this.elements = []"];
+    NTI5 --> NTI6["實作自訂控制項建立方法"];
+    NTI6 --> NTI7["實作 selectXXX(element) 方法"];
+    NTI7 --> NTI8["在 selectXXX 開始呼叫 this.app.hideAllControls()"];
+    NTI8 --> NTI9["實作 hideAllControls() 方法"];
+    NTI9 --> NTI10["實作 exportData() 和 importData() 方法"];
+    NTI10 --> NTI11["更新到 app.js"];
+
+    %% app.js 更新流程
+    NTB22 --> APP_UPDATE["app.js 更新流程"];
+    NTI11 --> APP_UPDATE;
+    
+    APP_UPDATE --> AU1["在全域變數宣告新模組"];
+    AU1 --> AU2["在 app 物件的 hideAllControls 中新增"];
+    AU2 --> AU3["xxxModule.hideAllControls()"];
+    AU3 --> AU4["在模組初始化區域新增"];
+    AU4 --> AU5["xxxModule = new XXXModule(canvasModule, backgroundModule, app)"];
+    AU5 --> AU6["在 HTML 中新增工具按鈕"];
+    AU6 --> AU7["新增按鈕事件監聽器"];
+    AU7 --> AU8["在 handleElementSelection 中新增判斷"];
+    AU8 --> AU9["else if (xxxModule.elements.includes(clickedElement))"];
+    AU9 --> AU10["xxxModule.selectXXX(clickedElement)"];
+    AU10 --> AU11["在 clearCanvas 事件中新增"];
+    AU11 --> AU12["xxxModule.clearAllXXX()"];
+    AU12 --> AU13["在 SaveLoadModule 中新增"];
+    AU13 --> AU14["constructor 參數和 exportData/importData 整合"];
+    AU14 --> DEPLOY["部署測試"];
+
+    %% 關鍵注意事項流程
+    DEPLOY --> KEY["關鍵注意事項"];
+    KEY --> KEY1["確保模組初始化順序正確"];
+    KEY1 --> KEY2["app 物件必須在所有模組初始化前建立"];
+    KEY2 --> KEY3["所有模組都要接收 appInstance 參數"];
+    KEY3 --> KEY4["selectXXX 方法必須先呼叫 app.hideAllControls()"];
+    KEY4 --> KEY5["exportData/importData 使用 style 屬性座標"];
+    KEY5 --> KEY6["控制按鈕 class 需包含識別符"];
+    KEY6 --> KEY7["BaseControlModule: 'element-control-btn'"];
+    KEY7 --> KEY8["QRCodeModule: 'qr-control-btn'"];
+    KEY8 --> KEY9["測試三種場景"];
+    KEY9 --> KEY10["1. 點擊元素只顯示該元素按鈕"];
+    KEY10 --> KEY11["2. 點擊空白處隱藏所有按鈕"];
+    KEY11 --> KEY12["3. 儲存載入功能正常"];
+    KEY12 --> COMPLETE["開發完成"];
+
+    %% 除錯流程
+    DEBUG["常見問題除錯"] --> DBG1["按鈕顯示異常"];
+    DBG1 --> DBG2["檢查 app 實例是否正確傳遞"];
+    DBG2 --> DBG3["檢查 hideAllControls 是否包含新模組"];
+    DBG3 --> DBG4["檢查 selectXXX 是否呼叫 app.hideAllControls()"];
+    DBG4 --> DBG5["儲存載入失敗"];
+    DBG5 --> DBG6["檢查 exportElementData 實作"];
+    DBG6 --> DBG7["檢查座標使用 style 屬性而非 getBoundingClientRect"];
+    DBG7 --> DBG8["檢查 SaveLoadModule 是否包含新模組"];
+    DBG8 --> COMPLETE;
+```
+
+## 工具開發詳細程式設計流程說明
+
+### 方式一：繼承 BaseControlModule（推薦）
+適用於需要標準 3 按鈕控制的工具（移動、刪除、縮放）
+
+#### 1. 建立模組檔案
+```javascript
+class XXXModule extends BaseControlModule {
+    constructor(canvasModule, backgroundModule, appInstance) {
+        const config = {
+            defaultWidth: 200,
+            defaultHeight: 150,
+            toolName: '工具名稱'
+        };
+        super(canvasModule, backgroundModule, appInstance, config);
+    }
+}
+```
+
+#### 2. 核心方法實作
+- `createElement(x, y)`: 建立元素 DOM
+- `exportElementData(element)`: 匯出元素資料
+- `importElementData(elementData)`: 匯入元素資料
+
+### 方式二：獨立實作
+適用於需要特殊控制邏輯的工具（如 QRCodeModule）
+
+#### 關鍵要求：
+1. 建構函數必須接收 `appInstance`
+2. `selectXXX` 方法開始要呼叫 `this.app.hideAllControls()`
+3. 實作 `hideAllControls()` 方法
+4. 座標使用 `style.left/top` 而非 `getBoundingClientRect()`
+
+### app.js 整合步驟
+1. 全域變數宣告
+2. hideAllControls 方法新增
+3. 模組初始化（確保在 app 物件建立後）
+4. HTML 按鈕和事件監聽器
+5. handleElementSelection 新增判斷
+6. clearCanvas 整合
+7. SaveLoadModule 整合
 ``` 

@@ -466,3 +466,251 @@ function loadProject(projectId) {
 5. **工具狀態管理**: 統一的工具切換和狀態追蹤機制
 6. **專案管理系統**: 支援多專案建立、儲存、載入 (開發中)
 7. **資料匯出入架構**: 各模組提供標準化的資料處理介面 (開發中) 
+
+## 工具開發流程與最佳實踐 ⭐
+
+### 新增工具開發指南
+
+#### 開發方式選擇
+
+**方式一：繼承 BaseControlModule（推薦）**
+適用於需要標準 3 按鈕控制的工具（移動、刪除、縮放）
+
+**方式二：獨立實作**
+適用於需要特殊控制邏輯的工具（如 QRCodeModule）
+
+#### 方式一：繼承 BaseControlModule 開發流程
+
+##### 1. 建立模組檔案 (js/XXXModule.js)
+```javascript
+class XXXModule extends BaseControlModule {
+    constructor(canvasModule, backgroundModule, appInstance) {
+        const config = {
+            defaultWidth: 200,
+            defaultHeight: 150,
+            minWidth: 100,
+            minHeight: 100,
+            moveButtonColor: '#10b981',
+            deleteButtonColor: '#ef4444', 
+            resizeButtonColor: '#3b82f6',
+            borderColor: '#10b981',
+            toolName: '工具名稱'
+        };
+        super(canvasModule, backgroundModule, appInstance, config);
+    }
+
+    // 必須實作：建立元素
+    createElement(x, y) {
+        const elementId = `xxx-${this.nextId++}`;
+        const container = document.createElement('div');
+        container.id = elementId;
+        container.className = 'xxx-container';
+        
+        // 設定容器樣式
+        container.style.cssText = `
+            position: absolute;
+            left: ${x}px;
+            top: ${y}px;
+            width: ${this.config.defaultWidth}px;
+            height: ${this.config.defaultHeight}px;
+            // 其他樣式...
+        `;
+        
+        // 新增內容到容器
+        // ...
+        
+        // 建立控制項
+        this.createElementControls(container);
+        
+        // 新增到管理陣列和頁面
+        this.elements.push(container);
+        document.body.appendChild(container);
+        
+        return container;
+    }
+
+    // 建議實作：直接建立方法（供 app.js 呼叫）
+    createXXXDirectly(x, y) {
+        return this.createElement(x, y);
+    }
+
+    // 必須實作：匯出元素資料
+    exportElementData(element) {
+        const baseData = super.exportElementData(element);
+        return {
+            ...baseData,
+            // 新增工具特定的資料屬性
+            customProperty: element.customValue
+        };
+    }
+
+    // 必須實作：匯入元素資料
+    importElementData(elementData) {
+        const element = this.createElement(elementData.x, elementData.y);
+        
+        // 設定元素特定屬性
+        if (elementData.customProperty) {
+            element.customValue = elementData.customProperty;
+        }
+        
+        // 恢復尺寸
+        if (elementData.width && elementData.height) {
+            element.style.width = elementData.width + 'px';
+            element.style.height = elementData.height + 'px';
+        }
+    }
+}
+```
+
+##### 2. app.js 整合步驟
+
+```javascript
+// 1. 全域變數宣告
+let xxxModule;
+
+// 2. 在 app 物件的 hideAllControls 方法中新增
+hideAllControls: () => {
+    // 其他模組...
+    xxxModule.hideAllControls();
+}
+
+// 3. 模組初始化（確保在 app 物件建立後）
+xxxModule = new XXXModule(canvasModule, backgroundModule, app);
+
+// 4. 工具按鈕事件監聽器
+xxxToolBtn.addEventListener('click', () => {
+    canvasModule.setTool('cursor');
+    setActiveToolButton(cursorTool);
+    canvas.style.cursor = 'default';
+    
+    const centerX = canvas.offsetWidth / 2;
+    const centerY = canvas.offsetHeight / 2;
+    xxxModule.createXXXDirectly(centerX, centerY);
+    
+    app.hideAllControls();
+    selectedElement = null;
+});
+
+// 5. handleElementSelection 中新增判斷
+else if (xxxModule.elements.includes(clickedElement)) {
+    xxxModule.selectElement(clickedElement);
+    console.log('[App.js] xxxModule.selectElement called for:', clickedElement.id);
+}
+
+// 6. clearCanvas 事件中新增
+xxxModule.clearAllElements();
+
+// 7. SaveLoadModule 整合
+new SaveLoadModule(
+    // 其他模組...
+    xxxModule
+);
+```
+
+#### 方式二：獨立實作開發流程
+
+##### 關鍵要求
+1. 建構函數必須接收 `appInstance` 並儲存為 `this.app`
+2. 實作 `selectXXX(element)` 方法，開始時必須呼叫 `this.app.hideAllControls()`
+3. 實作 `hideAllControls()` 方法
+4. 實作 `exportData()` 和 `importData()` 方法
+5. 座標儲存使用 `style.left/top` 而非 `getBoundingClientRect()`
+
+##### 核心實作模式
+```javascript
+class XXXModule {
+    constructor(canvasModule, backgroundModule, appInstance) {
+        this.app = appInstance; // 關鍵：儲存 app 實例
+        this.elements = [];
+        // 其他初始化...
+    }
+
+    selectXXX(element) {
+        // 關鍵：先隱藏所有控制項
+        if (this.app && this.app.hideAllControls) {
+            this.app.hideAllControls();
+        }
+        
+        // 然後顯示當前元素控制項
+        this.showControls(element);
+    }
+
+    hideAllControls() {
+        this.elements.forEach(element => {
+            this.hideControls(element);
+        });
+    }
+}
+```
+
+### 開發檢查清單
+
+#### 開發前準備
+- [ ] 確定工具功能需求
+- [ ] 選擇合適的開發方式（繼承 vs 獨立）
+- [ ] 設計工具的視覺樣式和互動行為
+
+#### 模組開發
+- [ ] 建立模組檔案並實作核心方法
+- [ ] 確保 app 實例正確傳遞和儲存
+- [ ] 實作 select 方法並確保先呼叫 `app.hideAllControls()`
+- [ ] 實作 `hideAllControls()` 方法
+- [ ] 實作 `exportData/importData` 方法
+- [ ] 座標使用 `style` 屬性而非 `getBoundingClientRect()`
+
+#### app.js 整合
+- [ ] 全域變數宣告
+- [ ] `app.hideAllControls` 方法更新
+- [ ] 模組初始化（在 app 物件建立後）
+- [ ] HTML 按鈕新增
+- [ ] 按鈕事件監聽器新增
+- [ ] `handleElementSelection` 判斷邏輯新增
+- [ ] `clearCanvas` 事件整合
+- [ ] `SaveLoadModule` 建構函數參數新增
+
+#### 測試驗證
+- [ ] 點擊工具建立元素正常
+- [ ] 點擊元素只顯示該元素的 3 按鈕
+- [ ] 點擊其他元素會隱藏前一個元素的按鈕
+- [ ] 點擊空白處隱藏所有按鈕
+- [ ] 3 按鈕功能正常（移動、縮放、刪除）
+- [ ] 儲存專案功能正常
+- [ ] 載入專案功能正常
+- [ ] 清空畫布功能正常
+
+### 常見問題除錯
+
+#### 按鈕顯示異常
+1. 檢查 app 實例是否正確傳遞到模組
+2. 檢查 `app.hideAllControls()` 是否包含新模組
+3. 檢查 `selectXXX` 方法是否在開始時呼叫 `app.hideAllControls()`
+4. 檢查模組初始化順序是否正確
+
+#### 儲存載入失敗
+1. 檢查 `exportElementData` 方法實作
+2. 確保座標使用 `style.left/top` 屬性
+3. 檢查 `SaveLoadModule` 建構函數是否包含新模組
+4. 驗證 `importElementData` 方法正確恢復元素狀態
+
+#### 控制項位置錯誤
+1. 確保容器使用 `position: absolute`
+2. 檢查 `updateControlPositions` 方法實作
+3. 驗證元素 `getBoundingClientRect()` 回傳值正確
+
+### 效能最佳化建議
+
+1. **記憶體管理**：確保元素刪除時清理所有事件監聽器
+2. **DOM 操作**：批次更新 DOM 屬性減少重繪
+3. **事件節流**：拖拽和縮放事件使用 throttle 減少計算頻率
+4. **資料壓縮**：匯出資料時移除不必要的屬性
+5. **懶加載**：大量元素時考慮虛擬滾動或分頁載入
+
+### 程式碼品質標準
+
+1. **命名規範**：使用語義化的變數和方法名稱
+2. **註解文檔**：為複雜邏輯新增詳細註解
+3. **錯誤處理**：新增適當的錯誤處理和使用者提示
+4. **類型檢查**：參數驗證和類型檢查
+5. **測試覆蓋**：確保核心功能有測試驗證
+
+這個開發指南確保所有新工具都能與現有系統完美整合，提供一致的使用者體驗。 
