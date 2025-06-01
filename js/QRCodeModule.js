@@ -337,6 +337,11 @@ class QRCodeModule {
                 size: size,
                 originalSize: size
             };
+            
+            // 同時也設定 dataset 屬性以供匯出使用
+            qrContainer.dataset.qrText = text;
+            
+
 
             // 為QR碼容器添加點擊事件監聽器
             qrContainer.addEventListener('mousedown', (e) => {
@@ -747,22 +752,36 @@ class QRCodeModule {
      * @returns {Array} QR Code 資料陣列
      */
     exportData() {
-        return this.qrCodes.map(qr => {
-            const rect = qr.getBoundingClientRect();
-            const canvasRect = this.canvas.getBoundingClientRect();
+        console.log('QRCodeModule.exportData() 被調用');
+        console.log('當前 QR 碼數量:', this.qrCodes.length);
+        
+        const exportedData = this.qrCodes.map(qr => {
+            // 使用 style 屬性中的座標而不是 getBoundingClientRect
+            const x = parseInt(qr.style.left) || 0;
+            const y = parseInt(qr.style.top) || 0;
+            const width = parseInt(qr.style.width) || 150;
+            const height = parseInt(qr.style.height) || 150;
             const img = qr.querySelector('img');
             
-            return {
+
+            
+            const qrData = {
                 id: qr.id,
-                x: rect.left - canvasRect.left,
-                y: rect.top - canvasRect.top,
-                width: rect.width,
-                height: rect.height,
-                text: qr.dataset.qrText || '',
+                x: x,
+                y: y,
+                width: width,
+                height: height,
+                text: qr.dataset.qrText || (qr.qrData && qr.qrData.text) || '',
                 dataURL: img ? img.src : '',
                 timestamp: Date.now()
             };
+            
+            console.log('匯出 QR Code 資料:', qrData);
+            return qrData;
         });
+        
+        console.log('QRCodeModule.exportData() 完成，匯出了', exportedData.length, '個 QR 碼');
+        return exportedData;
     }
 
     /**
@@ -770,18 +789,34 @@ class QRCodeModule {
      * @param {Array} data - QR Code 資料陣列
      */
     importData(data) {
+        console.log('QRCodeModule.importData() 被調用，資料:', data);
+        
         if (!Array.isArray(data)) {
             console.warn('QRCode importData: 無效的資料格式');
             return;
         }
 
+        console.log('準備匯入', data.length, '個 QR 碼');
+
         // 清空現有 QR Code
         this.clearAll();
 
         // 重建 QR Code
-        data.forEach(qrData => {
+        data.forEach((qrData, index) => {
+            console.log(`匯入第 ${index + 1} 個 QR 碼:`, qrData);
             this.importQRData(qrData);
         });
+
+        // 確保所有匯入的 QR 碼在需要時能顯示控制項
+        setTimeout(() => {
+            this.qrCodes.forEach(qr => {
+                this.updateControlPositions(qr);
+                // 如果目前是作用中狀態，顯示控制項
+                if (this.active) {
+                    this.showQRControls(qr);
+                }
+            });
+        }, 100);
 
         console.log('QR Code 資料載入完成:', data.length, '個 QR Code');
     }
@@ -791,8 +826,8 @@ class QRCodeModule {
      * @param {Object} qrData - QR Code 資料
      */
     importQRData(qrData) {
-        if (!qrData.x || !qrData.y || !qrData.text) {
-            console.warn('QRCode importQRData: 缺少必要資料');
+        if (!qrData.text) {
+            console.warn('QRCode importQRData: 缺少文字資料');
             return;
         }
 
@@ -801,20 +836,26 @@ class QRCodeModule {
         const qrContainer = document.createElement('div');
         qrContainer.id = qrId;
         qrContainer.className = 'qr-container';
-        qrContainer.dataset.qrText = qrData.text;
         
+        // 設定樣式，與 createQRCodeOnCanvas 保持一致
         qrContainer.style.cssText = `
             position: absolute;
             left: ${qrData.x}px;
             top: ${qrData.y}px;
             width: ${qrData.width || 150}px;
             height: ${qrData.height || 150}px;
-            cursor: pointer;
-            user-select: none;
-            z-index: 40;
-            border: 2px solid transparent;
-            border-radius: 4px;
+            border: 2px solid #10b981;
+            border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            cursor: move;
+            user-select: none;
+            z-index: 50;
+            background: white;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         `;
 
         // 建立圖片元素
@@ -823,9 +864,8 @@ class QRCodeModule {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            background: white;
-            border-radius: 2px;
         `;
+        img.alt = `QR Code: ${qrData.text}`;
         
         if (qrData.dataURL) {
             img.src = qrData.dataURL;
@@ -839,11 +879,31 @@ class QRCodeModule {
         // 建立控制項
         this.createQRControls(qrContainer);
 
+        // 儲存相關資料 - 重要！與 createQRCodeOnCanvas 保持一致
+        qrContainer.qrData = {
+            id: qrId,
+            text: qrData.text,
+            size: qrData.width || 150,
+            originalSize: qrData.width || 150
+        };
+        
+        // 設定 dataset 屬性
+        qrContainer.dataset.qrText = qrData.text;
+
+        // 為QR碼容器添加點擊事件監聽器 - 重要！
+        qrContainer.addEventListener('mousedown', (e) => {
+            // 只有在cursor工具模式下才處理
+            if (this.canvasModule.currentTool === 'cursor') {
+                this.selectQR(qrContainer);
+                console.log('[QRCodeModule.js] QR container clicked directly:', qrContainer.id);
+            }
+        });
+
         // 添加到陣列和頁面
         this.qrCodes.push(qrContainer);
         document.body.appendChild(qrContainer);
 
-        console.log('QR Code 已匯入:', qrId);
+        console.log('QR Code 已匯入:', qrId, '文字:', qrData.text);
     }
 
     /**

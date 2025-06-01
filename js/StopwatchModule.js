@@ -332,9 +332,13 @@ class StopwatchModule extends BaseControlModule {
      * 覆寫：匯入碼錶資料
      */
     importElementData(elementData) {
-        const stopwatch = this.createStopwatch(elementData.x, elementData.y);
+        const stopwatch = this.createStopwatch(elementData.x || 0, elementData.y || 0);
         
         if (stopwatch && elementData) {
+            // 設定位置（確保位置正確）
+            stopwatch.style.left = (elementData.x || 0) + 'px';
+            stopwatch.style.top = (elementData.y || 0) + 'px';
+            
             // 設定尺寸
             if (elementData.width && elementData.height) {
                 stopwatch.style.width = elementData.width + 'px';
@@ -342,8 +346,10 @@ class StopwatchModule extends BaseControlModule {
                 
                 // 調整字體大小
                 const timeDisplay = stopwatch.querySelector('.time-display');
-                const scaleFactor = elementData.width / this.config.defaultWidth;
-                timeDisplay.style.fontSize = (32 * scaleFactor) + 'px';
+                if (timeDisplay) {
+                    const scaleFactor = elementData.width / this.config.defaultWidth;
+                    timeDisplay.style.fontSize = (32 * scaleFactor) + 'px';
+                }
             }
             
             // 設定時間
@@ -357,5 +363,7 @@ class StopwatchModule extends BaseControlModule {
                 stopwatch.id = elementData.id;
             }
         }
+        
+        return stopwatch;
     }
 } 

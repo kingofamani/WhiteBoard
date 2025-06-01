@@ -562,13 +562,24 @@ class CountdownModule extends BaseControlModule {
      * 覆寫：匯入倒數計時器資料
      */
     importElementData(elementData) {
-        const countdown = this.createCountdown(elementData.x, elementData.y);
+        const countdown = this.createCountdown(elementData.x || 0, elementData.y || 0);
         
         if (countdown && elementData) {
+            // 設定位置（確保位置正確）
+            countdown.style.left = (elementData.x || 0) + 'px';
+            countdown.style.top = (elementData.y || 0) + 'px';
+            
             // 設定尺寸
             if (elementData.width && elementData.height) {
                 countdown.style.width = elementData.width + 'px';
                 countdown.style.height = elementData.height + 'px';
+                
+                // 調整字體大小
+                const timeDisplay = countdown.querySelector('.time-display');
+                if (timeDisplay) {
+                    const scaleFactor = elementData.width / this.config.defaultWidth;
+                    timeDisplay.style.fontSize = (28 * scaleFactor) + 'px';
+                }
             }
             
             // 設定時間
@@ -593,5 +604,7 @@ class CountdownModule extends BaseControlModule {
                 this.updateTimeDisplay(countdown);
             }
         }
+        
+        return countdown;
     }
 } 

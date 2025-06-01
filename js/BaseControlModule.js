@@ -460,15 +460,18 @@ class BaseControlModule {
      * @returns {Object} 元素資料
      */
     exportElementData(element) {
-        const rect = element.getBoundingClientRect();
-        const canvasRect = this.canvas.getBoundingClientRect();
+        // 使用 style 屬性中的座標而不是 getBoundingClientRect
+        const x = parseInt(element.style.left) || 0;
+        const y = parseInt(element.style.top) || 0;
+        const width = parseInt(element.style.width) || this.config.defaultWidth;
+        const height = parseInt(element.style.height) || this.config.defaultHeight;
         
         return {
             id: element.id,
-            x: rect.left - canvasRect.left,
-            y: rect.top - canvasRect.top,
-            width: rect.width,
-            height: rect.height,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
             timestamp: Date.now()
         };
     }

@@ -644,7 +644,14 @@ class ProjectUI {
         if (project) {
             const projectData = this.saveLoadModule.exportAllData();
             const thumbnail = this.saveLoadModule.generateThumbnail();
-            this.projectManager.saveCurrentProject(projectData, thumbnail);
+            const success = this.projectManager.saveCurrentProject(projectData, thumbnail);
+            
+            // 顯示儲存結果 toast
+            if (success) {
+                this.showToast('專案儲存成功！', 'success');
+            } else {
+                this.showToast('專案儲存失敗，請重試', 'error');
+            }
         }
     }
 
@@ -735,6 +742,79 @@ class ProjectUI {
     showStartupScreen() {
         this.hideCurrentModal();
         this.createStartupScreen();
+    }
+
+    /**
+     * 顯示 Toast 通知
+     * @param {string} message - 通知訊息
+     * @param {string} type - 通知類型 ('success', 'error', 'warning', 'info')
+     */
+    showToast(message, type = 'info') {
+        // 移除現有的 toast
+        const existingToast = document.getElementById('project-toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
+
+        // 建立 toast 元素
+        const toast = document.createElement('div');
+        toast.id = 'project-toast';
+        toast.className = `project-toast ${type}`;
+        
+        // 根據類型設定顏色
+        const colors = {
+            success: '#10b981', // 綠色
+            error: '#ef4444',   // 紅色
+            warning: '#f59e0b', // 橙色
+            info: '#3b82f6'     // 藍色
+        };
+        
+        const bgColors = {
+            success: '#f0fdf4', // 淺綠色
+            error: '#fef2f2',   // 淺紅色
+            warning: '#fffbeb', // 淺橙色
+            info: '#eff6ff'     // 淺藍色
+        };
+
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${bgColors[type] || bgColors.info};
+            color: ${colors[type] || colors.info};
+            border: 1px solid ${colors[type] || colors.info};
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10001;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            max-width: 300px;
+            word-wrap: break-word;
+        `;
+
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // 顯示動畫
+        setTimeout(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0)';
+        }, 100);
+
+        // 3秒後自動隱藏
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
     }
 }
 
